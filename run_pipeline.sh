@@ -133,6 +133,22 @@ echo "========================================"
 ok "파이프라인 완료! (STEP ${FROM_STEP}~${TO_STEP})"
 echo "  종료 시각: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "========================================"
+
+# ── GitHub 자동 푸시 (Streamlit Cloud 갱신) ──────────────────────────────────
+if git rev-parse --git-dir > /dev/null 2>&1; then
+    echo ""
+    echo "▶ GitHub 푸시 — Streamlit Cloud 데이터 갱신"
+    git add output/*.json
+    if git diff --cached --quiet; then
+        warn "output 변경 없음 — 푸시 생략"
+    else
+        git commit -m "데이터 업데이트 $(date '+%Y-%m-%d %H:%M:%S')" \
+            && git push \
+            && ok "GitHub 푸시 완료" \
+            || warn "GitHub 푸시 실패 (NON-CRITICAL)"
+    fi
+fi
+
 echo ""
 echo "대시보드 실행:"
 echo "  streamlit run .claude/skills/dashboard/scripts/app.py"
