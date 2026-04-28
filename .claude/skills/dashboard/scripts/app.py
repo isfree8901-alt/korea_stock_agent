@@ -455,7 +455,7 @@ if _sq and market_data_raw:
             with st.expander(
                 f"**{name}** `{tkr}` — {sector_kr}  |  {cap_억:,}억  {chg_icon} {chg:+.2f}%"
                 + (f"  |  섹터Top10 **{sec_rank[1]}위** ({sec_rank[0]})" if sec_rank else ""),
-                expanded=len(_matches) == 1,
+                expanded=False,
             ):
                 c1, c2, c3, c4, c5, c6 = st.columns(6)
                 c1.metric("PER", f"{r['per']:.1f}"       if r.get("per")            else "N/A")
@@ -524,7 +524,7 @@ if all_new or all_removed:
 
                 status = today_log.get(name, {}).get("status", "")
                 icon   = "✅" if status == "완료" else ("⏭" if status == "패스" else "⬜")
-                with st.expander(f"{icon} **{name}** ({sector})", expanded=(not status)):
+                with st.expander(f"{icon} **{name}** ({sector})", expanded=False):
                     st.caption(f"{per_str} · {roe_str} · {debt_str}")
                     col1, col2 = st.columns(2)
                     if col1.button("검토 완료 ✅", key=f"buy_done_{name}"):
@@ -547,7 +547,7 @@ if all_new or all_removed:
                 log_key = f"sell_{name}"
                 status  = today_log.get(log_key, {}).get("status", "")
                 icon    = "✅" if status == "완료" else ("🔒" if status == "유지" else "⬜")
-                with st.expander(f"{icon} **{name}** ({sector} 이탈)", expanded=(not status)):
+                with st.expander(f"{icon} **{name}** ({sector} 이탈)", expanded=False):
                     col1, col2 = st.columns(2)
                     if col1.button("검토 완료 ✅", key=f"sell_done_{name}"):
                         today_log[log_key] = {"action": "매도검토", "status": "완료"}
@@ -629,7 +629,7 @@ if themes_data:
         badge = "⭐ " if is_hl else ""
         label = f"{badge}{sector}   6m점수: {sc6m:.3f}  |  기사 {t.get('article_count', 0)}건"
 
-        with st.expander(label, expanded=is_hl):
+        with st.expander(label, expanded=False):
             c1, c2, c3, c4 = st.columns(4)
             sent = t.get("sentiment_score", 0) or 0
             fwd  = t.get("forward_ratio", 0) or 0
@@ -731,7 +731,7 @@ if rankings_data:
         score_str  = f"  6m:{score:.3f}" if score > 0 else ""
         label      = f"{badge}{display}{score_str}  ({len(top10)}개 종목)"
 
-        with st.expander(label, expanded=(hl or has_ch)):
+        with st.expander(label, expanded=False):
             if has_ch:
                 new_e    = ch.get("new_entries", [])
                 removed_e = ch.get("removed", [])
@@ -1220,7 +1220,7 @@ with _tab_hold:
             _flag_icon = {"정상": "✅", "손절임박": "⚡", "손절선도달": "🚨", "추적손절도달": "⚠️", "시세없음": "❓"}.get(_flag, "")
             _header  = f"{_flag_icon} **{_nm}** — 손익 {_pct_str}  |  {_flag}"
 
-            with st.expander(_header, expanded=(_flag != "정상")):
+            with st.expander(_header, expanded=False):
                 _edit_key = f"edit_mode_{_nm}"
 
                 if not st.session_state.get(_edit_key):
