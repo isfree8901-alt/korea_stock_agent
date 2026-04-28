@@ -16,10 +16,13 @@ def _setup_korean_font() -> None:
     candidates = ["AppleGothic", "Nanum Myeongjo", "Nanum Gothic",
                   "Malgun Gothic", "NanumGothic", "DejaVu Sans"]
     for name in candidates:
-        found = fm.findfont(fm.FontProperties(family=name), fallback_to_default=False)
-        if found and "DejaVu" not in found:
-            plt.rcParams["font.family"] = name
-            break
+        try:
+            found = fm.findfont(fm.FontProperties(family=name), fallback_to_default=False)
+            if found and "DejaVu" not in found:
+                plt.rcParams["font.family"] = name
+                break
+        except Exception:
+            continue
     plt.rcParams["axes.unicode_minus"] = False
 
 _setup_korean_font()
