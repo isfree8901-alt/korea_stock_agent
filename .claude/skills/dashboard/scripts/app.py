@@ -249,9 +249,29 @@ section[data-testid="stSidebar"] > div:first-child { background-color: #f0f4f8; 
     border-radius: 10px;
     padding: 14px 18px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s;
 }
+[data-testid="metric-container"]:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
 h2 { border-left: 4px solid #1f77b4; padding-left: 10px; margin-top: 1.5rem; }
 .stAlert p { font-size: 0.88rem; }
+/* 모바일 대응 */
+@media (max-width: 768px) {
+    [data-testid="column"] { min-width: 48% !important; flex: 0 0 48% !important; }
+    h1 { font-size: 1.4rem !important; }
+    h2 { font-size: 1.1rem !important; }
+    .stDataFrame { font-size: 0.72rem; }
+    [data-testid="metric-container"] { padding: 8px 10px; }
+}
+/* 섹터 하이라이트 카드 */
+.hl-card {
+    background: linear-gradient(135deg,#fffbeb,#fef3c7);
+    border: 2px solid #f59e0b;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 6px;
+}
+/* 구분선 강화 */
+hr { border-top: 2px solid #e2e8f0 !important; margin: 1.5rem 0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -614,6 +634,33 @@ if _sq and market_data_raw:
                 c6.metric("매출성장", f"{r['revenue_growth']:.1f}%" if r.get("revenue_growth") is not None else "N/A")
                 if r.get("missing_fields"):
                     st.caption("⚠️ " + " · ".join(r["missing_fields"]))
+
+                # 트레이드 노트 즉시 추가
+                _qn_key = f"quick_note_open_{tkr}"
+                if st.button("📒 트레이드 노트에 추가", key=f"qn_btn_{tkr}", use_container_width=True):
+                    st.session_state[_qn_key] = not st.session_state.get(_qn_key, False)
+                if st.session_state.get(_qn_key):
+                    _existing_notes = load_notes(TRADE_NOTES_BASE)
+                    if name in _existing_notes and _existing_notes[name].get("status") == "보유중":
+                        st.warning(f"'{name}'은 이미 트레이드 노트에 보유 중입니다.")
+                    else:
+                        with st.form(f"quick_note_form_{tkr}", clear_on_submit=True):
+                            _qn1, _qn2, _qn3 = st.columns(3)
+                            _qn_price = _qn1.number_input("매수가(원)", value=int(close or 0), min_value=1, step=100)
+                            _qn_qty   = _qn2.number_input("수량(주)", value=1, min_value=1)
+                            _qn_date  = _qn3.date_input("매수일", value=date.today())
+                            _qn_memo  = st.text_input("메모", placeholder="매수 이유...")
+                            if st.form_submit_button("💾 저장", use_container_width=True):
+                                _existing_notes[name] = {
+                                    "ticker": tkr, "buy_price": int(_qn_price),
+                                    "quantity": int(_qn_qty), "buy_date": _qn_date.isoformat(),
+                                    "note": _qn_memo.strip(), "peak_price": int(_qn_price),
+                                    "status": "보유중",
+                                }
+                                save_notes(_existing_notes, TRADE_NOTES_BASE)
+                                st.session_state[_qn_key] = False
+                                st.success(f"✅ {name} 트레이드 노트에 추가됨!")
+                                st.rerun()
     else:
         st.info("일치하는 종목이 없습니다.")
     st.divider()
@@ -721,15 +768,30 @@ if themes_data:
     highlighted = {s: t for s, t in themes_data.items() if t.get("highlight")}
 
     if highlighted:
-        h_cols = st.columns(len(highlighted))
-        for col, (sector, t) in zip(h_cols, highlighted.items()):
-            with col:
-                sc_val = t.get("composite_6m", 0)
+        h_cols = st.columns(min(len(highlighted), 4))
+        for i, (sector, t) in enumerate(highlighted.items()):
+            with h_cols[i % min(len(highlighted), 4)]:
+                sc_val  = t.get("composite_6m", 0) or 0
                 sc_prev = sector_scores.get(sector, {}).get("composite_score", 0) or 0
-                st.success(
-                    f"**⭐ {sector}**\n\n"
-                    f"6m 점수: `{sc_val:.3f}`  |  단기: `{sc_prev:.3f}`"
+                sent    = t.get("sentiment_score", 0) or 0
+                art_cnt = t.get("article_count", 0)
+                krx_match = next(
+                    (k for k in rankings_data if KRX_TO_NEWS.get(k, k) == sector or k == sector),
+                    None,
                 )
+                st.success(f"**⭐ {sector}**")
+                st.progress(
+                    min(1.0, max(0.0, sc_val)),
+                    text=f"6m 점수: {sc_val:.3f}  |  단기: {sc_prev:.3f}",
+                )
+                _hc1, _hc2 = st.columns(2)
+                _hc1.metric("뉴스 감성", "긍정" if sent > 0.3 else ("부정" if sent < -0.2 else "중립"))
+                _hc2.metric("기사수", f"{art_cnt}건")
+                if krx_match and st.button(
+                    "📊 Top10 바로 보기", key=f"jump_top10_{sector}", use_container_width=True
+                ):
+                    st.session_state["focus_krx_sector"] = krx_match
+                    st.rerun()
 
     # 전 섹터 수평 바 차트
     sectors_sorted = sorted(
@@ -760,6 +822,56 @@ if themes_data:
         textposition="outside",
     )
     st.plotly_chart(fig_bar, use_container_width=True)
+
+    # 섹터 종합 히트맵
+    with st.expander("🗺 섹터 종합 히트맵 — 한 눈에 보기", expanded=False):
+        import numpy as _np
+        _hm_sectors = list(themes_data.keys())
+        _hm_col_labels = ["6m 점수", "뉴스 감성", "전망 비율", "모멘텀(등락)", "상승 비율"]
+        _hm_matrix: list[list[float]] = []
+        for _hs in _hm_sectors:
+            _ht = themes_data[_hs]
+            _hsc = sector_scores.get(_hs, {})
+            _hm_matrix.append([
+                float(_ht.get("composite_6m", 0) or 0),
+                float(_ht.get("sentiment_score", 0) or 0),
+                float(_ht.get("forward_ratio", 0) or 0),
+                float(_hsc.get("avg_change_rate", 0) or 0),
+                float((_hsc.get("advancing_ratio", 0) or 0)),
+            ])
+        if _hm_matrix:
+            _hm_np = _np.array(_hm_matrix, dtype=float)
+            _hm_norm = _np.zeros_like(_hm_np)
+            for _j in range(_hm_np.shape[1]):
+                _col_v = _hm_np[:, _j]
+                _mn, _mx = _col_v.min(), _col_v.max()
+                _hm_norm[:, _j] = (_col_v - _mn) / (_mx - _mn) if _mx > _mn else 0.5
+            _sector_labels_hm = [
+                ("⭐ " if themes_data[_hs].get("highlight") else "") + _hs
+                for _hs in _hm_sectors
+            ]
+            _text_hm = [
+                [f"{_hm_matrix[_i][_j]:.2f}" for _j in range(len(_hm_col_labels))]
+                for _i in range(len(_hm_sectors))
+            ]
+            _fig_hm = go.Figure(data=go.Heatmap(
+                z=_hm_norm.tolist(),
+                x=_hm_col_labels,
+                y=_sector_labels_hm,
+                colorscale="RdYlGn",
+                zmin=0, zmax=1,
+                text=_text_hm,
+                texttemplate="%{text}",
+                textfont={"size": 10},
+                hovertemplate="%{y} | %{x}<br>값: %{text}<br>강도: %{z:.2f}<extra></extra>",
+            ))
+            _fig_hm.update_layout(
+                height=max(320, len(_hm_sectors) * 34),
+                margin={"l": 10, "r": 10, "t": 10, "b": 10},
+                xaxis_side="top",
+            )
+            st.plotly_chart(_fig_hm, use_container_width=True)
+            st.caption("각 셀 = 열 내 상대 강도 (0→1, 초록=강함). 실제 값은 셀 안 숫자. ⭐ = 6개월 주목 섹터")
 
     # 섹터별 상세 expander
     st.subheader("섹터별 상세 분석 & 뉴스")
@@ -860,11 +972,22 @@ st.caption(
 )
 
 if rankings_data:
-    sorted_sectors = sorted(
+    _all_sorted_sectors = sorted(
         rankings_data.keys(),
         key=lambda s: sector_composite_score(s, sector_scores, themes_data),
         reverse=True,
     )
+
+    _focus_sector = st.session_state.get("focus_krx_sector")
+    if _focus_sector and _focus_sector in rankings_data:
+        _fc1, _fc2 = st.columns([5, 1])
+        _fc1.info(f"📍 **{krx_display_name(_focus_sector)}** 섹터만 표시 중 — 주목 섹터 카드에서 선택됨")
+        if _fc2.button("전체 보기 ✕", key="clear_focus_sector"):
+            del st.session_state["focus_krx_sector"]
+            st.rerun()
+        sorted_sectors = [_focus_sector]
+    else:
+        sorted_sectors = _all_sorted_sectors
 
     for krx_sector in sorted_sectors:
         v      = rankings_data[krx_sector]
@@ -918,7 +1041,24 @@ if rankings_data:
                     return "background-color:#f8d7da; color:#721c24"
                 return ""
 
-            styled_r = df_r.style.applymap(_style_rank, subset=[period_col])
+            def _style_chg(val):
+                try:
+                    v = float(str(val).replace("+", "").replace(",", ""))
+                    if v >= 3:   return "background-color:#15803d; color:white; font-weight:bold"
+                    if v >= 1:   return "background-color:#dcfce7; color:#15803d; font-weight:bold"
+                    if v > 0:    return "background-color:#f0fdf4; color:#166534"
+                    if v <= -3:  return "background-color:#b91c1c; color:white; font-weight:bold"
+                    if v <= -1:  return "background-color:#fde8e8; color:#b91c1c; font-weight:bold"
+                    if v < 0:    return "background-color:#fff5f5; color:#991b1b"
+                except (ValueError, TypeError):
+                    pass
+                return ""
+
+            styled_r = (
+                df_r.style
+                .applymap(_style_rank, subset=[period_col])
+                .applymap(_style_chg, subset=["등락률(%)"])
+            )
             st.dataframe(styled_r, use_container_width=True, hide_index=True)
 
 st.divider()
@@ -1359,6 +1499,61 @@ with _tab_hold:
     if not _active:
         st.info("보유 중인 종목이 없습니다. '신규 추가' 탭에서 등록하세요.")
     else:
+        # ── 포트폴리오 요약 카드 ─────────────────────────────────────────────────
+        _total_invest = _total_eval = 0
+        _pnl_chart_data: list[dict] = []
+        for _nm, _note in _active.items():
+            _c = market_data_raw.get(_note.get("ticker", ""), {}).get("close") if market_data_raw else None
+            _p = calc_pnl(_note, _c)
+            _buy_amt = (_note.get("buy_price", 0) or 0) * (_note.get("quantity", 0) or 0)
+            _eval_amt = (_c or (_note.get("buy_price", 0) or 0)) * (_note.get("quantity", 0) or 0)
+            _total_invest += _buy_amt
+            _total_eval   += _eval_amt
+            _pnl_chart_data.append({
+                "종목": _nm,
+                "손익률": _p["pnl_pct"] or 0.0,
+                "평가손익": _p["pnl_amount"] or 0,
+                "상태": _p["status_flag"],
+            })
+
+        _tot_pnl_amt = _total_eval - _total_invest
+        _tot_pnl_pct = (_tot_pnl_amt / _total_invest * 100) if _total_invest else 0.0
+
+        _s1, _s2, _s3, _s4 = st.columns(4)
+        _s1.metric("총 투자금액", f"{_total_invest:,.0f}원")
+        _s2.metric("총 평가금액", f"{_total_eval:,.0f}원")
+        _s3.metric("총 평가손익", f"{_tot_pnl_amt:+,.0f}원",
+                   delta_color="normal" if _tot_pnl_amt >= 0 else "inverse")
+        _s4.metric("총 수익률", f"{_tot_pnl_pct:+.2f}%",
+                   delta_color="normal" if _tot_pnl_pct >= 0 else "inverse")
+
+        # ── P&L 바 차트 ──────────────────────────────────────────────────────────
+        if _pnl_chart_data:
+            _pnl_df = pd.DataFrame(_pnl_chart_data).sort_values("손익률")
+            _bar_colors = [
+                "#15803d" if v >= 0 else "#b91c1c" for v in _pnl_df["손익률"]
+            ]
+            _fig_pnl = go.Figure(go.Bar(
+                x=_pnl_df["손익률"],
+                y=_pnl_df["종목"],
+                orientation="h",
+                marker_color=_bar_colors,
+                text=[f"{v:+.2f}%" for v in _pnl_df["손익률"]],
+                textposition="outside",
+            ))
+            _fig_pnl.add_vline(x=0, line_color="gray", line_width=1)
+            _fig_pnl.update_layout(
+                title="종목별 손익률",
+                height=max(180, len(_pnl_chart_data) * 48 + 60),
+                margin={"l": 10, "r": 70, "t": 40, "b": 20},
+                xaxis_title="손익률 (%)",
+                showlegend=False,
+            )
+            st.plotly_chart(_fig_pnl, use_container_width=True)
+
+        st.divider()
+
+        # ── 종목별 상세 ──────────────────────────────────────────────────────────
         _total_pnl = 0
         for _nm, _note in _active.items():
             _cur = market_data_raw.get(_note.get("ticker", ""), {}).get("close") if market_data_raw else None
