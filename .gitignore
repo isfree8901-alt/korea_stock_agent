@@ -1,0 +1,25 @@
+# 환경변수 / 인증 정보
+.env
+.streamlit/secrets.toml
+
+# 파이프라인 산출물
+output/*.json
+output/*.log
+
+# 로그
+logs/*.log
+
+# 개인 데이터 (로컬 전용)
+data/trade_notes.json
+data/asset_allocation.json
+data/corp_codes.json
+data/historical/
+data/portfolio_history/
+
+# Python 캐시
+__pycache__/
+*.pyc
+*.pyo
+
+# macOS
+.DS_Store
