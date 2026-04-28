@@ -2,8 +2,7 @@
 .env
 .streamlit/secrets.toml
 
-# 파이프라인 산출물
-output/*.json
+# 파이프라인 산출물 (output JSON은 커밋해야 Streamlit Cloud에서 데이터 표시됨)
 output/*.log
 
 # 로그

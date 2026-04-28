@@ -1,0 +1,24 @@
+{
+  "selected_sectors": [
+    {
+      "sector_name": "농림축산식품",
+      "rank": 1,
+      "composite_score": 0.675,
+      "rationale": "농림축산식품 부문은 긍정적인 감성 분석을 받았으며, 평균 변동률이 1.82%, 매출 성장률이 10.2%로 양호한 흐름을 보이고 있어 선정되었습니다.",
+      "key_signals": {
+        "sentiment": "긍정",
+        "price_momentum": "+1.82%",
+        "revenue_trend": "+10.2%"
+      },
+      "supporting_news": [
+        "축산물이력제 합동단속 3주간 실시…원산지·등급 집중 점검",
+        "축산식품 이력제 위반 단속 강화"
+      ],
+      "news_links": [
+        "https://example.com/news1",
+        "https://example.com/news2"
+      ]
+    }
+  ],
+  "analysis_summary": "농림축산식품 부문은 전체 시장에서 가장 긍정적인 분위기를 나타내며, 평균 변동률이 1.82%로 상승세를 보이고 있습니다. 또한, 매출 성장률과 이익 개선 비율도 양호한 흐름을 유지하고 있어 투자 유망성이 높습니다."
+}

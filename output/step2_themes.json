@@ -1,0 +1,214 @@
+{
+  "반도체": {
+    "article_count": 16,
+    "top_keywords": [
+      "엔비디아",
+      "HBM",
+      "메모리"
+    ],
+    "forward_keyword_hits": 111,
+    "risk_keyword_hits": 14,
+    "forward_ratio": 0.881,
+    "sentiment_score": 0.489,
+    "avg_change_rate": 1.71,
+    "advancing_ratio": 55.3,
+    "composite_score": 0.653,
+    "forward_score": 0.873,
+    "composite_6m": 0.903,
+    "highlight": true,
+    "highlight_reason": "뉴스 전망 언급 111건 | 감성 긍정 | 핵심 이슈: 엔비디아, HBM, 메모리 | 상승종목비율 55%"
+  },
+  "2차전지": {
+    "article_count": 2,
+    "top_keywords": [
+      "전기차",
+      "배터리"
+    ],
+    "forward_keyword_hits": 11,
+    "risk_keyword_hits": 4,
+    "forward_ratio": 0.688,
+    "sentiment_score": 0.176,
+    "avg_change_rate": null,
+    "advancing_ratio": null,
+    "composite_score": 0.588,
+    "forward_score": 0.0,
+    "composite_6m": 0.152,
+    "highlight": false,
+    "highlight_reason": ""
+  },
+  "자동차": {
+    "article_count": 8,
+    "top_keywords": [
+      "전기차",
+      "현대차",
+      "수출",
+      "기아",
+      "플랫폼"
+    ],
+    "forward_keyword_hits": 31,
+    "risk_keyword_hits": 8,
+    "forward_ratio": 0.775,
+    "sentiment_score": 0.273,
+    "avg_change_rate": 0.97,
+    "advancing_ratio": 56.0,
+    "composite_score": 0.701,
+    "forward_score": 0.394,
+    "composite_6m": 0.45,
+    "highlight": false,
+    "highlight_reason": ""
+  },
+  "금융": {
+    "article_count": 24,
+    "top_keywords": [
+      "펀드",
+      "금리",
+      "대출",
+      "예금",
+      "보험"
+    ],
+    "forward_keyword_hits": 110,
+    "risk_keyword_hits": 29,
+    "forward_ratio": 0.786,
+    "sentiment_score": 0.174,
+    "avg_change_rate": 0.47,
+    "advancing_ratio": 47.5,
+    "composite_score": 0.559,
+    "forward_score": 0.443,
+    "composite_6m": 0.298,
+    "highlight": false,
+    "highlight_reason": ""
+  },
+  "에너지": {
+    "article_count": 21,
+    "top_keywords": [
+      "전력",
+      "재생에너지",
+      "원유",
+      "풍력"
+    ],
+    "forward_keyword_hits": 79,
+    "risk_keyword_hits": 26,
+    "forward_ratio": 0.745,
+    "sentiment_score": 0.2,
+    "avg_change_rate": -0.18,
+    "advancing_ratio": 31.6,
+    "composite_score": 0.49,
+    "forward_score": 0.258,
+    "composite_6m": 0.128,
+    "highlight": false,
+    "highlight_reason": ""
+  },
+  "통신": {
+    "article_count": 12,
+    "top_keywords": [
+      "AI",
+      "클라우드",
+      "미디어"
+    ],
+    "forward_keyword_hits": 54,
+    "risk_keyword_hits": 8,
+    "forward_ratio": 0.857,
+    "sentiment_score": 0.333,
+    "avg_change_rate": 0.39,
+    "advancing_ratio": 50.0,
+    "composite_score": 0.578,
+    "forward_score": 0.765,
+    "composite_6m": 0.583,
+    "highlight": true,
+    "highlight_reason": "뉴스 전망 언급 54건 | 감성 긍정 | 핵심 이슈: AI, 클라우드, 미디어 | 상승종목비율 50%"
+  },
+  "철강": {
+    "article_count": 1,
+    "top_keywords": [
+      "철강"
+    ],
+    "forward_keyword_hits": 10,
+    "risk_keyword_hits": 0,
+    "forward_ratio": 0.909,
+    "sentiment_score": 0.231,
+    "avg_change_rate": 1.61,
+    "advancing_ratio": 65.9,
+    "composite_score": 0.612,
+    "forward_score": 1.0,
+    "composite_6m": 0.746,
+    "highlight": false,
+    "highlight_reason": ""
+  },
+  "화학": {
+    "article_count": 4,
+    "top_keywords": [
+      "석유화학"
+    ],
+    "forward_keyword_hits": 48,
+    "risk_keyword_hits": 9,
+    "forward_ratio": 0.828,
+    "sentiment_score": 0.25,
+    "avg_change_rate": 0.55,
+    "advancing_ratio": 46.6,
+    "composite_score": 0.55,
+    "forward_score": 0.633,
+    "composite_6m": 0.449,
+    "highlight": false,
+    "highlight_reason": ""
+  },
+  "IT서비스": {
+    "article_count": 37,
+    "top_keywords": [
+      "AI",
+      "플랫폼",
+      "클라우드",
+      "자동화",
+      "빅데이터"
+    ],
+    "forward_keyword_hits": 125,
+    "risk_keyword_hits": 16,
+    "forward_ratio": 0.88,
+    "sentiment_score": 0.44,
+    "avg_change_rate": 0.87,
+    "advancing_ratio": 54.3,
+    "composite_score": 0.678,
+    "forward_score": 0.869,
+    "composite_6m": 0.783,
+    "highlight": true,
+    "highlight_reason": "뉴스 전망 언급 125건 | 감성 긍정 | 핵심 이슈: AI, 플랫폼, 클라우드 | 상승종목비율 54%"
+  },
+  "건설": {
+    "article_count": 31,
+    "top_keywords": [
+      "분양",
+      "재개발",
+      "수주",
+      "인프라",
+      "해외건설"
+    ],
+    "forward_keyword_hits": 153,
+    "risk_keyword_hits": 40,
+    "forward_ratio": 0.789,
+    "sentiment_score": 0.267,
+    "avg_change_rate": 0.84,
+    "advancing_ratio": 39.4,
+    "composite_score": 0.5,
+    "forward_score": 0.457,
+    "composite_6m": 0.386,
+    "highlight": false,
+    "highlight_reason": ""
+  },
+  "유통": {
+    "article_count": 3,
+    "top_keywords": [
+      "소비",
+      "온라인"
+    ],
+    "forward_keyword_hits": 6,
+    "risk_keyword_hits": 1,
+    "forward_ratio": 0.75,
+    "sentiment_score": 0.226,
+    "avg_change_rate": 0.98,
+    "advancing_ratio": 48.5,
+    "composite_score": 0.565,
+    "forward_score": 0.281,
+    "composite_6m": 0.328,
+    "highlight": false,
+    "highlight_reason": ""
+  }
+}

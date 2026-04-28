@@ -21,6 +21,29 @@ from trade_note_manager import (
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parents[4]
+
+
+# ─── 비밀번호 인증 ────────────────────────────────────────────────────────────
+def _check_password() -> bool:
+    """Streamlit secrets에 password가 있으면 로그인 요구, 없으면 로컬 개발로 간주."""
+    try:
+        required_pwd = st.secrets["password"]
+    except (KeyError, FileNotFoundError):
+        return True  # 로컬 개발: secrets 없으면 인증 생략
+
+    if st.session_state.get("_authenticated"):
+        return True
+
+    st.title("🔒 Korea Stock Agent")
+    pwd = st.text_input("비밀번호를 입력하세요", type="password")
+    if st.button("로그인", use_container_width=True):
+        if pwd == required_pwd:
+            st.session_state["_authenticated"] = True
+            st.rerun()
+        else:
+            st.error("비밀번호가 틀렸습니다.")
+    st.stop()
+    return False
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", BASE_DIR / "output"))
 HISTORY_DIR = BASE_DIR / "data" / "portfolio_history"
 
@@ -87,6 +110,7 @@ def save_action_log(log: dict) -> None:
 
 
 st.set_page_config(page_title="Korea Stock Agent", page_icon="📈", layout="wide")
+_check_password()
 
 
 # ─── 유틸 ────────────────────────────────────────────────────────────────────

@@ -1,0 +1,842 @@
+{
+  "004170": {
+    "name": "신세계",
+    "sector": "유통",
+    "close": 407000,
+    "per": 255.9748427672956,
+    "roe": 0.9829565550276954,
+    "pbr": 0.5849018040501095,
+    "eps_growth": null,
+    "revenue_growth": 5.465198372539536,
+    "debt_ratio": null,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 95.16940129062891,
+      "roe": 5.860748684045353,
+      "pbr": 1.5674976227472386,
+      "eps_growth": null,
+      "revenue_growth": 12.1046491833146,
+      "debt_ratio": 97.81019842000104
+    },
+    "z_scores": {
+      "per": 1.666,
+      "roe": -0.391,
+      "pbr": -0.556,
+      "eps_growth": null,
+      "revenue_growth": -0.346,
+      "debt_ratio": null
+    }
+  },
+  "078590": {
+    "name": "휴림에이텍",
+    "sector": "운송장비·부품",
+    "close": 642,
+    "per": null,
+    "roe": -22.723853790698318,
+    "pbr": 1.3106769037777146,
+    "eps_growth": null,
+    "revenue_growth": -8.450231441889407,
+    "debt_ratio": 66.74101126883501,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": null,
+      "roe": -22.723853790698318,
+      "pbr": 1.3106769037777146,
+      "eps_growth": null,
+      "revenue_growth": -8.450231441889407,
+      "debt_ratio": 66.74101126883501
+    },
+    "z_scores": {
+      "per": null,
+      "roe": null,
+      "pbr": null,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": null
+    }
+  },
+  "069540": {
+    "name": "빛과전자",
+    "sector": "전기·전자",
+    "close": 5240,
+    "per": null,
+    "roe": -33.322940840965124,
+    "pbr": 8.713195926556082,
+    "eps_growth": null,
+    "revenue_growth": null,
+    "debt_ratio": 57.303342985311936,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 87.20731016429312,
+      "roe": -12.248475354760942,
+      "pbr": 8.988572446706494,
+      "eps_growth": null,
+      "revenue_growth": 0.18590846398411465,
+      "debt_ratio": 96.95511996212262
+    },
+    "z_scores": {
+      "per": null,
+      "roe": -1.111,
+      "pbr": -0.027,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": -0.559
+    }
+  },
+  "111770": {
+    "name": "영원무역",
+    "sector": "유통",
+    "close": 83400,
+    "per": 7.21578127703755,
+    "roe": 10.382488287054615,
+    "pbr": 0.9001575980642921,
+    "eps_growth": null,
+    "revenue_growth": null,
+    "debt_ratio": 39.251513698318426,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 95.16940129062891,
+      "roe": 5.860748684045353,
+      "pbr": 1.5674976227472386,
+      "eps_growth": null,
+      "revenue_growth": 12.1046491833146,
+      "debt_ratio": 97.81019842000104
+    },
+    "z_scores": {
+      "per": -0.911,
+      "roe": 0.363,
+      "pbr": -0.378,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": -0.867
+    }
+  },
+  "098460": {
+    "name": "고영",
+    "sector": "기계·장비",
+    "close": 42300,
+    "per": null,
+    "roe": null,
+    "pbr": null,
+    "eps_growth": null,
+    "revenue_growth": 14.865888144698305,
+    "debt_ratio": null,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": null,
+      "roe": -16.090091846845343,
+      "pbr": 4.231926625991563,
+      "eps_growth": null,
+      "revenue_growth": 0.37589357247106925,
+      "debt_ratio": 99.12326228300834
+    },
+    "z_scores": {
+      "per": null,
+      "roe": null,
+      "pbr": null,
+      "eps_growth": null,
+      "revenue_growth": 0.625,
+      "debt_ratio": null
+    }
+  },
+  "095340": {
+    "name": "ISC",
+    "sector": "유통",
+    "close": 235000,
+    "per": null,
+    "roe": null,
+    "pbr": null,
+    "eps_growth": null,
+    "revenue_growth": 26.20050055523245,
+    "debt_ratio": null,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 95.16940129062891,
+      "roe": 5.860748684045353,
+      "pbr": 1.5674976227472386,
+      "eps_growth": null,
+      "revenue_growth": 12.1046491833146,
+      "debt_ratio": 97.81019842000104
+    },
+    "z_scores": {
+      "per": null,
+      "roe": null,
+      "pbr": null,
+      "eps_growth": null,
+      "revenue_growth": 0.734,
+      "debt_ratio": null
+    }
+  },
+  "078130": {
+    "name": "국일제지",
+    "sector": "종이·목재",
+    "close": 434,
+    "per": null,
+    "roe": -1.5488899032535834,
+    "pbr": 4.081714009027096,
+    "eps_growth": null,
+    "revenue_growth": 20.26013979997955,
+    "debt_ratio": 11.657632062794995,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": null,
+      "roe": -1.5488899032535834,
+      "pbr": 4.081714009027096,
+      "eps_growth": null,
+      "revenue_growth": 20.26013979997955,
+      "debt_ratio": 11.657632062794995
+    },
+    "z_scores": {
+      "per": null,
+      "roe": null,
+      "pbr": null,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": null
+    }
+  },
+  "026960": {
+    "name": "동서",
+    "sector": "유통",
+    "close": 26550,
+    "per": null,
+    "roe": 8.430640697403701,
+    "pbr": 1.5236677552774405,
+    "eps_growth": null,
+    "revenue_growth": 9.004228825093065,
+    "debt_ratio": 3.516304032830463,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 95.16940129062891,
+      "roe": 5.860748684045353,
+      "pbr": 1.5674976227472386,
+      "eps_growth": null,
+      "revenue_growth": 12.1046491833146,
+      "debt_ratio": 97.81019842000104
+    },
+    "z_scores": {
+      "per": null,
+      "roe": 0.206,
+      "pbr": -0.025,
+      "eps_growth": null,
+      "revenue_growth": -0.161,
+      "debt_ratio": -1.397
+    }
+  },
+  "209640": {
+    "name": "와이제이링크",
+    "sector": "기계·장비",
+    "close": 7520,
+    "per": null,
+    "roe": -4.163312884846628,
+    "pbr": 2.8714327859679334,
+    "eps_growth": null,
+    "revenue_growth": -5.0704415409933095,
+    "debt_ratio": 65.82072541707018,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": null,
+      "roe": -16.090091846845343,
+      "pbr": 4.231926625991563,
+      "eps_growth": null,
+      "revenue_growth": 0.37589357247106925,
+      "debt_ratio": 99.12326228300834
+    },
+    "z_scores": {
+      "per": null,
+      "roe": 1.157,
+      "pbr": -0.536,
+      "eps_growth": null,
+      "revenue_growth": -0.235,
+      "debt_ratio": -0.482
+    }
+  },
+  "008770": {
+    "name": "호텔신라",
+    "sector": "유통",
+    "close": 62300,
+    "per": null,
+    "roe": -15.625126226592482,
+    "pbr": 2.2103686393866115,
+    "eps_growth": null,
+    "revenue_growth": 3.0589662111051696,
+    "debt_ratio": 220.1368545398108,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 95.16940129062891,
+      "roe": 5.860748684045353,
+      "pbr": 1.5674976227472386,
+      "eps_growth": null,
+      "revenue_growth": 12.1046491833146,
+      "debt_ratio": 97.81019842000104
+    },
+    "z_scores": {
+      "per": null,
+      "roe": -1.723,
+      "pbr": 0.364,
+      "eps_growth": null,
+      "revenue_growth": -0.471,
+      "debt_ratio": 1.812
+    }
+  },
+  "065420": {
+    "name": "에스아이리소스",
+    "sector": "화학",
+    "close": 285,
+    "per": null,
+    "roe": -18.70822643322291,
+    "pbr": 1.9487474293920104,
+    "eps_growth": null,
+    "revenue_growth": 97.86727710490494,
+    "debt_ratio": 64.20919369068295,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": null,
+      "roe": -31.37615639632906,
+      "pbr": 1.4435511887605748,
+      "eps_growth": null,
+      "revenue_growth": 32.41575364550453,
+      "debt_ratio": 60.178224304072785
+    },
+    "z_scores": {
+      "per": null,
+      "roe": 1.0,
+      "pbr": 1.0,
+      "eps_growth": null,
+      "revenue_growth": 1.0,
+      "debt_ratio": 1.0
+    }
+  },
+  "226340": {
+    "name": "본느",
+    "sector": "화학",
+    "close": 807,
+    "per": null,
+    "roe": -44.044086359435205,
+    "pbr": 0.9383549481291392,
+    "eps_growth": null,
+    "revenue_growth": -33.03576981389588,
+    "debt_ratio": 56.14725491746262,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": null,
+      "roe": -31.37615639632906,
+      "pbr": 1.4435511887605748,
+      "eps_growth": null,
+      "revenue_growth": 32.41575364550453,
+      "debt_ratio": 60.178224304072785
+    },
+    "z_scores": {
+      "per": null,
+      "roe": -1.0,
+      "pbr": -1.0,
+      "eps_growth": null,
+      "revenue_growth": -1.0,
+      "debt_ratio": -1.0
+    }
+  },
+  "090710": {
+    "name": "휴림로봇",
+    "sector": "기계·장비",
+    "close": 13250,
+    "per": null,
+    "roe": -14.795886308072495,
+    "pbr": 7.78580946756696,
+    "eps_growth": null,
+    "revenue_growth": 26.45185469945156,
+    "debt_ratio": 36.12839956523581,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": null,
+      "roe": -16.090091846845343,
+      "pbr": 4.231926625991563,
+      "eps_growth": null,
+      "revenue_growth": 0.37589357247106925,
+      "debt_ratio": 99.12326228300834
+    },
+    "z_scores": {
+      "per": null,
+      "roe": 0.126,
+      "pbr": 1.401,
+      "eps_growth": null,
+      "revenue_growth": 1.124,
+      "debt_ratio": -0.911
+    }
+  },
+  "001440": {
+    "name": "대한전선",
+    "sector": "전기·전자",
+    "close": 42850,
+    "per": 94.5916114790287,
+    "roe": 5.506036992351191,
+    "pbr": 4.894356045378701,
+    "eps_growth": null,
+    "revenue_growth": 10.473639796020118,
+    "debt_ratio": 114.00420338534761,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 87.20731016429312,
+      "roe": -12.248475354760942,
+      "pbr": 8.988572446706494,
+      "eps_growth": null,
+      "revenue_growth": 0.18590846398411465,
+      "debt_ratio": 96.95511996212262
+    },
+    "z_scores": {
+      "per": 1.0,
+      "roe": 0.936,
+      "pbr": -0.403,
+      "eps_growth": null,
+      "revenue_growth": 1.081,
+      "debt_ratio": 0.24
+    }
+  },
+  "139480": {
+    "name": "이마트",
+    "sector": "유통",
+    "close": 105400,
+    "per": 20.73170731707317,
+    "roe": 1.7985001121805695,
+    "pbr": 0.21235443603822804,
+    "eps_growth": null,
+    "revenue_growth": -0.17404216427970215,
+    "debt_ratio": 144.60713343156527,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 95.16940129062891,
+      "roe": 5.860748684045353,
+      "pbr": 1.5674976227472386,
+      "eps_growth": null,
+      "revenue_growth": 12.1046491833146,
+      "debt_ratio": 97.81019842000104
+    },
+    "z_scores": {
+      "per": -0.771,
+      "roe": -0.326,
+      "pbr": -0.767,
+      "eps_growth": null,
+      "revenue_growth": -0.639,
+      "debt_ratio": 0.693
+    }
+  },
+  "131760": {
+    "name": "파인텍",
+    "sector": "기계·장비",
+    "close": 1280,
+    "per": null,
+    "roe": -29.311076347616915,
+    "pbr": 2.0385376244397966,
+    "eps_growth": null,
+    "revenue_growth": -34.74372701327228,
+    "debt_ratio": 195.42066186671906,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": null,
+      "roe": -16.090091846845343,
+      "pbr": 4.231926625991563,
+      "eps_growth": null,
+      "revenue_growth": 0.37589357247106925,
+      "debt_ratio": 99.12326228300834
+    },
+    "z_scores": {
+      "per": null,
+      "roe": -1.283,
+      "pbr": -0.865,
+      "eps_growth": null,
+      "revenue_growth": -1.514,
+      "debt_ratio": 1.392
+    }
+  },
+  "005880": {
+    "name": "대한해운",
+    "sector": "운송·창고",
+    "close": 2765,
+    "per": 4.9375,
+    "roe": 7.1753566363859465,
+    "pbr": 0.3695752044029387,
+    "eps_growth": null,
+    "revenue_growth": -26.91289404960257,
+    "debt_ratio": 70.17714985016302,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 4.9375,
+      "roe": 7.1753566363859465,
+      "pbr": 0.3695752044029387,
+      "eps_growth": null,
+      "revenue_growth": -26.91289404960257,
+      "debt_ratio": 70.17714985016302
+    },
+    "z_scores": {
+      "per": null,
+      "roe": null,
+      "pbr": null,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": null
+    }
+  },
+  "900300": {
+    "name": "오가닉티코스메틱",
+    "sector": "금융",
+    "close": 244,
+    "per": null,
+    "roe": null,
+    "pbr": null,
+    "eps_growth": null,
+    "revenue_growth": null,
+    "debt_ratio": null,
+    "disclosure_warning": true,
+    "sector_avg": {
+      "per": null,
+      "roe": null,
+      "pbr": 8.497944295561899,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": 26.76798648333311
+    },
+    "z_scores": {
+      "per": null,
+      "roe": null,
+      "pbr": null,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": null
+    }
+  },
+  "023530": {
+    "name": "롯데쇼핑",
+    "sector": "유통",
+    "close": 133000,
+    "per": 72.91666666666667,
+    "roe": 0.43611230704436316,
+    "pbr": 0.22307367718637214,
+    "eps_growth": null,
+    "revenue_growth": null,
+    "debt_ratio": 124.77088676248766,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 95.16940129062891,
+      "roe": 5.860748684045353,
+      "pbr": 1.5674976227472386,
+      "eps_growth": null,
+      "revenue_growth": 12.1046491833146,
+      "debt_ratio": 97.81019842000104
+    },
+    "z_scores": {
+      "per": -0.231,
+      "roe": -0.435,
+      "pbr": -0.761,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": 0.399
+    }
+  },
+  "036540": {
+    "name": "SFA반도체",
+    "sector": "전기·전자",
+    "close": 9640,
+    "per": null,
+    "roe": -4.046086663707554,
+    "pbr": 3.3530164136147813,
+    "eps_growth": null,
+    "revenue_growth": -8.263453188195038,
+    "debt_ratio": 16.20621915618083,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 87.20731016429312,
+      "roe": -12.248475354760942,
+      "pbr": 8.988572446706494,
+      "eps_growth": null,
+      "revenue_growth": 0.18590846398411465,
+      "debt_ratio": 96.95511996212262
+    },
+    "z_scores": {
+      "per": null,
+      "roe": 0.433,
+      "pbr": -0.554,
+      "eps_growth": null,
+      "revenue_growth": -0.888,
+      "debt_ratio": -1.139
+    }
+  },
+  "452260": {
+    "name": "한화갤러리아",
+    "sector": "유통",
+    "close": 3340,
+    "per": 196.47058823529412,
+    "roe": 0.4017180656739088,
+    "pbr": 0.7851835292903394,
+    "eps_growth": null,
+    "revenue_growth": 6.8458226605660695,
+    "debt_ratio": 144.6047543589533,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 95.16940129062891,
+      "roe": 5.860748684045353,
+      "pbr": 1.5674976227472386,
+      "eps_growth": null,
+      "revenue_growth": 12.1046491833146,
+      "debt_ratio": 97.81019842000104
+    },
+    "z_scores": {
+      "per": 1.05,
+      "roe": -0.438,
+      "pbr": -0.443,
+      "eps_growth": null,
+      "revenue_growth": -0.274,
+      "debt_ratio": 0.693
+    }
+  },
+  "027360": {
+    "name": "아주IB투자",
+    "sector": "금융",
+    "close": 18720,
+    "per": null,
+    "roe": null,
+    "pbr": 8.497944295561899,
+    "eps_growth": null,
+    "revenue_growth": null,
+    "debt_ratio": 26.76798648333311,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": null,
+      "roe": null,
+      "pbr": 8.497944295561899,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": 26.76798648333311
+    },
+    "z_scores": {
+      "per": null,
+      "roe": null,
+      "pbr": null,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": null
+    }
+  },
+  "028260": {
+    "name": "삼성물산",
+    "sector": "유통",
+    "close": 311500,
+    "per": null,
+    "roe": 6.794538849874998,
+    "pbr": 0.8785794394983198,
+    "eps_growth": null,
+    "revenue_growth": -3.232523492144137,
+    "debt_ratio": 50.49971623578309,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 95.16940129062891,
+      "roe": 5.860748684045353,
+      "pbr": 1.5674976227472386,
+      "eps_growth": null,
+      "revenue_growth": 12.1046491833146,
+      "debt_ratio": 97.81019842000104
+    },
+    "z_scores": {
+      "per": null,
+      "roe": 0.075,
+      "pbr": -0.39,
+      "eps_growth": null,
+      "revenue_growth": -0.799,
+      "debt_ratio": -0.701
+    }
+  },
+  "257720": {
+    "name": "실리콘투",
+    "sector": "유통",
+    "close": 48800,
+    "per": 17.706821480406386,
+    "roe": 36.8547492925991,
+    "pbr": 6.526002809465786,
+    "eps_growth": null,
+    "revenue_growth": 61.424621138707934,
+    "debt_ratio": 55.09442430025933,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 95.16940129062891,
+      "roe": 5.860748684045353,
+      "pbr": 1.5674976227472386,
+      "eps_growth": null,
+      "revenue_growth": 12.1046491833146,
+      "debt_ratio": 97.81019842000104
+    },
+    "z_scores": {
+      "per": -0.803,
+      "roe": 2.486,
+      "pbr": 2.807,
+      "eps_growth": null,
+      "revenue_growth": 2.568,
+      "debt_ratio": -0.633
+    }
+  },
+  "010170": {
+    "name": "대한광통신",
+    "sector": "전기·전자",
+    "close": 13360,
+    "per": null,
+    "roe": -41.96884636580779,
+    "pbr": 31.166347390222864,
+    "eps_growth": null,
+    "revenue_growth": -8.689706669412434,
+    "debt_ratio": 228.5975766459,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 87.20731016429312,
+      "roe": -12.248475354760942,
+      "pbr": 8.988572446706494,
+      "eps_growth": null,
+      "revenue_growth": 0.18590846398411465,
+      "debt_ratio": 96.95511996212262
+    },
+    "z_scores": {
+      "per": null,
+      "roe": -1.567,
+      "pbr": 2.181,
+      "eps_growth": null,
+      "revenue_growth": -0.933,
+      "debt_ratio": 1.856
+    }
+  },
+  "004410": {
+    "name": "서울식품",
+    "sector": "음식료·담배",
+    "close": 158,
+    "per": null,
+    "roe": -5.986358164247287,
+    "pbr": 2.327801295453594,
+    "eps_growth": null,
+    "revenue_growth": 17.09347944604848,
+    "debt_ratio": 172.02645998720848,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": null,
+      "roe": -5.986358164247287,
+      "pbr": 2.327801295453594,
+      "eps_growth": null,
+      "revenue_growth": 17.09347944604848,
+      "debt_ratio": 172.02645998720848
+    },
+    "z_scores": {
+      "per": null,
+      "roe": null,
+      "pbr": null,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": null
+    }
+  },
+  "092220": {
+    "name": "KEC",
+    "sector": "전기·전자",
+    "close": 1871,
+    "per": null,
+    "roe": -8.153978735699685,
+    "pbr": 1.1527234003448408,
+    "eps_growth": null,
+    "revenue_growth": -5.5735914381348595,
+    "debt_ratio": 37.7651676216339,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 87.20731016429312,
+      "roe": -12.248475354760942,
+      "pbr": 8.988572446706494,
+      "eps_growth": null,
+      "revenue_growth": 0.18590846398411465,
+      "debt_ratio": 96.95511996212262
+    },
+    "z_scores": {
+      "per": null,
+      "roe": 0.216,
+      "pbr": -0.77,
+      "eps_growth": null,
+      "revenue_growth": -0.605,
+      "debt_ratio": -0.835
+    }
+  },
+  "047050": {
+    "name": "포스코인터내셔널",
+    "sector": "유통",
+    "close": 81300,
+    "per": null,
+    "roe": 8.15090890018706,
+    "pbr": 1.8306865392148834,
+    "eps_growth": null,
+    "revenue_growth": 0.3490705430110254,
+    "debt_ratio": null,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 95.16940129062891,
+      "roe": 5.860748684045353,
+      "pbr": 1.5674976227472386,
+      "eps_growth": null,
+      "revenue_growth": 12.1046491833146,
+      "debt_ratio": 97.81019842000104
+    },
+    "z_scores": {
+      "per": null,
+      "roe": 0.184,
+      "pbr": 0.149,
+      "eps_growth": null,
+      "revenue_growth": -0.612,
+      "debt_ratio": null
+    }
+  },
+  "006340": {
+    "name": "대원전선",
+    "sector": "전기·전자",
+    "close": 9020,
+    "per": 79.82300884955752,
+    "roe": 8.49496348526331,
+    "pbr": 4.651795504121687,
+    "eps_growth": null,
+    "revenue_growth": 12.982653819642787,
+    "debt_ratio": 127.85420997836145,
+    "disclosure_warning": false,
+    "sector_avg": {
+      "per": 87.20731016429312,
+      "roe": -12.248475354760942,
+      "pbr": 8.988572446706494,
+      "eps_growth": null,
+      "revenue_growth": 0.18590846398411465,
+      "debt_ratio": 96.95511996212262
+    },
+    "z_scores": {
+      "per": -1.0,
+      "roe": 1.094,
+      "pbr": -0.426,
+      "eps_growth": null,
+      "revenue_growth": 1.345,
+      "debt_ratio": 0.436
+    }
+  },
+  "152550": {
+    "name": "한국ANKOR유전",
+    "sector": "기타금융",
+    "close": 116,
+    "per": null,
+    "roe": null,
+    "pbr": null,
+    "eps_growth": null,
+    "revenue_growth": null,
+    "debt_ratio": null,
+    "disclosure_warning": true,
+    "sector_avg": {
+      "per": null,
+      "roe": null,
+      "pbr": null,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": null
+    },
+    "z_scores": {
+      "per": null,
+      "roe": null,
+      "pbr": null,
+      "eps_growth": null,
+      "revenue_growth": null,
+      "debt_ratio": null
+    }
+  }
+}
