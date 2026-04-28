@@ -17,6 +17,7 @@ from quant_screener import calc_factor_scores
 from trade_note_manager import (
     load_notes, save_notes, calc_pnl, check_stop_alerts,
 )
+import github_storage as _gh
 
 load_dotenv()
 
@@ -79,6 +80,29 @@ RADAR_COLORS = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6"]
 ACTION_LOG_PATH    = BASE_DIR / "data" / "action_log.json"
 ALLOC_PATH         = BASE_DIR / "data" / "asset_allocation.json"
 TRADE_NOTES_BASE   = BASE_DIR  # trade_note_manager가 BASE_DIR/data/trade_notes.json 사용
+TRADE_NOTES_GH_PATH = "data/trade_notes.json"  # GitHub 레포 내 경로
+
+
+def _load_notes_smart() -> dict:
+    """GitHub 스토리지 우선, 없으면 로컬 파일. 세션 내 캐싱으로 API 호출 최소화."""
+    if "_notes_cache" not in st.session_state:
+        if _gh.is_available():
+            data = _gh.load(TRADE_NOTES_GH_PATH)
+            st.session_state["_notes_cache"] = data if data is not None else load_notes(TRADE_NOTES_BASE)
+        else:
+            st.session_state["_notes_cache"] = load_notes(TRADE_NOTES_BASE)
+    return st.session_state["_notes_cache"]
+
+
+def _save_notes_smart(notes: dict) -> None:
+    """GitHub 저장 우선, 없으면 로컬 파일. 세션 캐시도 동시 갱신."""
+    st.session_state["_notes_cache"] = notes
+    if _gh.is_available():
+        if not _gh.save(TRADE_NOTES_GH_PATH, notes):
+            st.warning("⚠️ GitHub 저장 실패 — 로컬에 임시 저장됩니다.", icon="⚠️")
+            save_notes(notes, TRADE_NOTES_BASE)
+    else:
+        save_notes(notes, TRADE_NOTES_BASE)
 
 
 def load_alloc() -> dict:
@@ -640,7 +664,7 @@ if _sq and market_data_raw:
                 if st.button("📒 트레이드 노트에 추가", key=f"qn_btn_{tkr}", use_container_width=True):
                     st.session_state[_qn_key] = not st.session_state.get(_qn_key, False)
                 if st.session_state.get(_qn_key):
-                    _existing_notes = load_notes(TRADE_NOTES_BASE)
+                    _existing_notes = _load_notes_smart()
                     if name in _existing_notes and _existing_notes[name].get("status") == "보유중":
                         st.warning(f"'{name}'은 이미 트레이드 노트에 보유 중입니다.")
                     else:
@@ -657,7 +681,7 @@ if _sq and market_data_raw:
                                     "note": _qn_memo.strip(), "peak_price": int(_qn_price),
                                     "status": "보유중",
                                 }
-                                save_notes(_existing_notes, TRADE_NOTES_BASE)
+                                _save_notes_smart(_existing_notes)
                                 st.session_state[_qn_key] = False
                                 st.success(f"✅ {name} 트레이드 노트에 추가됨!")
                                 st.rerun()
@@ -1490,7 +1514,7 @@ st.markdown('<a id="trade-note"></a>', unsafe_allow_html=True)
 st.header("📒 트레이드 노트")
 st.caption("매수가 기준 -10% 손절선 · 고점 기준 -10% 추적 손절선 자동 계산")
 
-_notes = load_notes(TRADE_NOTES_BASE)
+_notes = _load_notes_smart()
 _tab_hold, _tab_add, _tab_hist = st.tabs(["📌 보유 현황", "➕ 신규 추가", "📋 이력"])
 
 # ── 보유 현황 탭 ──────────────────────────────────────────────────────────────
@@ -1586,14 +1610,14 @@ with _tab_hold:
                         _notes[_nm]["status"]     = "매도완료"
                         _notes[_nm]["sell_date"]  = date.today().isoformat()
                         _notes[_nm]["sell_price"] = _cur or _note["buy_price"]
-                        save_notes(_notes, TRADE_NOTES_BASE)
+                        _save_notes_smart(_notes)
                         st.rerun()
                     if _b2.button("✏️ 수정", key=f"edit_btn_{_nm}"):
                         st.session_state[_edit_key] = True
                         st.rerun()
                     if _b3.button("🗑️ 삭제", key=f"del_{_nm}"):
                         del _notes[_nm]
-                        save_notes(_notes, TRADE_NOTES_BASE)
+                        _save_notes_smart(_notes)
                         st.rerun()
                 else:
                     # ── 편집 모드 ─────────────────────────────────────────────
@@ -1635,7 +1659,7 @@ with _tab_hold:
                         _notes[_nm]["buy_date"]   = _ed.isoformat()
                         _notes[_nm]["peak_price"] = int(_epeak)
                         _notes[_nm]["note"]       = _ememo.strip()
-                        save_notes(_notes, TRADE_NOTES_BASE)
+                        _save_notes_smart(_notes)
                         st.session_state[_edit_key] = False
                         st.rerun()
                     if _cancelled:
