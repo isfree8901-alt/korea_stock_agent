@@ -9,8 +9,10 @@ from pathlib import Path
 
 import sys
 
-# Streamlit Cloud의 워킹 디렉토리는 레포 루트이므로 이 파일의 디렉토리를 경로에 추가
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Streamlit Cloud: CWD = 레포 루트이므로 스크립트 디렉토리를 명시적으로 추가
+_here = os.path.dirname(os.path.abspath(__file__))
+if _here not in sys.path:
+    sys.path.insert(0, _here)
 
 import pandas as pd
 import plotly.express as px

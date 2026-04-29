@@ -10,6 +10,7 @@ lxml>=4.9.3
 selenium>=4.15.0
 webdriver-manager>=4.0.0
 # konlpy>=0.6.0  # Java(JDK) 필요 — 미설치 시 공백 분리 폴백 자동 적용
+matplotlib>=3.8.0
 streamlit>=1.29.0
 plotly>=5.18.0
 python-dotenv>=1.0.0
