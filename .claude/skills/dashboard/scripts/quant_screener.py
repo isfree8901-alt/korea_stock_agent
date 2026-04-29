@@ -6,7 +6,125 @@
 """
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
+
+
+_BASE_DIR = Path(__file__).resolve().parents[4]
+_HIST_DIR = _BASE_DIR / "data" / "historical"
+
+# pykrx 조회용 날짜 창 (영업일 기준 여유 있게 +15일)
+_PYKRX_WINDOW = 55   # 30영업일 확보를 위해 55 캘린더일 조회
+
+
+def _load_hist_csv(ticker: str) -> pd.DataFrame | None:
+    """data/historical/{ticker}.csv 로드. 없으면 None."""
+    path = _HIST_DIR / f"{ticker}.csv"
+    if not path.exists():
+        return None
+    try:
+        df = pd.read_csv(path, parse_dates=["Date"])
+        df = df.sort_values("Date").reset_index(drop=True)
+        return df
+    except Exception:
+        return None
+
+
+def _pct_change_n_days(df: pd.DataFrame, n: int) -> float | None:
+    """종가 기준 최근 n영업일 대비 등락률(%) 반환. 데이터 부족 시 None."""
+    if df is None or len(df) < n + 1:
+        return None
+    last_close = df["Close"].iloc[-1]
+    ref_close  = df["Close"].iloc[-(n + 1)]
+    if ref_close == 0:
+        return None
+    return round((last_close / ref_close - 1) * 100, 2)
+
+
+def _fetch_price_changes_pykrx(tickers: list[str]) -> dict[str, dict]:
+    """
+    pykrx로 최근 ~55일 OHLCV를 배치 조회해 1/7/15/30일 등락률 계산.
+    히스토리컬 CSV가 없는 종목에 대한 fallback.
+    실패해도 예외를 전파하지 않고 빈 dict 반환.
+    """
+    from datetime import datetime, timedelta
+    result: dict[str, dict] = {}
+    if not tickers:
+        return result
+    try:
+        from pykrx import stock as _st
+        end_dt   = datetime.now()
+        start_dt = end_dt - timedelta(days=_PYKRX_WINDOW)
+        end_str   = end_dt.strftime("%Y%m%d")
+        start_str = start_dt.strftime("%Y%m%d")
+
+        for ticker in tickers:
+            try:
+                df = _st.get_market_ohlcv_by_date(start_str, end_str, ticker)
+                if df is None or df.empty:
+                    continue
+                df = df.reset_index()
+                df.columns = [c if c != "날짜" else "Date" for c in df.columns]
+                if "종가" in df.columns:
+                    df = df.rename(columns={"종가": "Close"})
+                elif "Close" not in df.columns:
+                    continue
+                df = df[df["Close"] > 0].sort_values("Date").reset_index(drop=True)
+                result[ticker] = {
+                    "chg_1d":  _pct_change_n_days(df, 1),
+                    "chg_7d":  _pct_change_n_days(df, 7),
+                    "chg_15d": _pct_change_n_days(df, 15),
+                    "chg_30d": _pct_change_n_days(df, 30),
+                }
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return result
+
+
+def enrich_price_changes(results: list[dict], market_data: dict) -> list[dict]:
+    """
+    스크리너 결과에 전일/7일/15일/30일 등락률 필드 추가.
+    우선순위: data/historical CSV → pykrx 온디맨드 → market_data.change_rate(전일만)
+    """
+    tickers_need_pykrx: list[str] = []
+
+    for item in results:
+        ticker = item["ticker"]
+        df = _load_hist_csv(ticker)
+        if df is not None and len(df) >= 32:
+            item["chg_1d"]  = _pct_change_n_days(df, 1)
+            item["chg_7d"]  = _pct_change_n_days(df, 7)
+            item["chg_15d"] = _pct_change_n_days(df, 15)
+            item["chg_30d"] = _pct_change_n_days(df, 30)
+        else:
+            # chg_1d: market_data.change_rate는 이미 % 단위로 저장됨 (1.17 = +1.17%)
+            raw_chg = market_data.get(ticker, {}).get("change_rate", None)
+            item["chg_1d"] = round(float(raw_chg), 2) if raw_chg is not None else None
+            item["chg_7d"]  = None
+            item["chg_15d"] = None
+            item["chg_30d"] = None
+            tickers_need_pykrx.append(ticker)
+
+    # pykrx 배치 조회 (CSV 없는 종목들)
+    if tickers_need_pykrx:
+        pykrx_data = _fetch_price_changes_pykrx(tickers_need_pykrx)
+        for item in results:
+            ticker = item["ticker"]
+            if ticker in pykrx_data:
+                px = pykrx_data[ticker]
+                # chg_1d는 market_data 값이 더 정확하므로 None일 때만 덮어쓰기
+                if item["chg_1d"] is None:
+                    item["chg_1d"] = px.get("chg_1d")
+                item["chg_7d"]  = px.get("chg_7d")
+                item["chg_15d"] = px.get("chg_15d")
+                item["chg_30d"] = px.get("chg_30d")
+
+    return results
 
 
 WEIGHTS = {

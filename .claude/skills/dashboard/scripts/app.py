@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from dotenv import load_dotenv
 from generate_scorecard import generate_scorecard
-from quant_screener import calc_factor_scores
+from quant_screener import calc_factor_scores, enrich_price_changes
 from trade_note_manager import (
     load_notes, save_notes, calc_pnl, check_stop_alerts,
 )
@@ -1453,7 +1453,8 @@ st.caption("강환국 퀀트 전략: 시총 하위 20% × 저PER(30%) + 저PBR(2
 if market_data_raw and ratios_data:
     @st.cache_data(show_spinner="팩터 점수 계산 중...", ttl=3600)
     def _quant_top50(date_key: str) -> list[dict]:
-        return calc_factor_scores(market_data_raw, ratios_data)
+        results = calc_factor_scores(market_data_raw, ratios_data)
+        return enrich_price_changes(results, market_data_raw)
 
     _qresults = _quant_top50(date.today().isoformat())
 
@@ -1461,18 +1462,27 @@ if market_data_raw and ratios_data:
         _qdf = pd.DataFrame(_qresults)
         _qdf.insert(0, "순위", range(1, len(_qdf) + 1))
 
-        # 표시 컬럼 포맷
+        # ── 포맷 헬퍼 ────────────────────────────────────────────────────────────
         def _qf(v, d=1):
             if v is None or (isinstance(v, float) and v != v): return "-"
             r = round(float(v), d)
             return str(int(r)) if r == int(r) else str(r)
 
+        def _chg_fmt(v) -> str:
+            if v is None or (isinstance(v, float) and v != v): return "-"
+            return f"{float(v):+.2f}%"
+
+        # ── 표시 DataFrame ────────────────────────────────────────────────────────
         _display = pd.DataFrame({
             "순위":         _qdf["순위"],
             "종목명":       _qdf["name"],
             "섹터":         _qdf["sector"],
             "시총(억)":     _qdf["market_cap_억"].apply(lambda x: f"{x:,}"),
             "팩터점수":     _qdf["factor_score"].apply(lambda x: f"{x:.4f}"),
+            "전일(%)":      _qdf["chg_1d"].apply(_chg_fmt),
+            "7일(%)":       _qdf["chg_7d"].apply(_chg_fmt),
+            "15일(%)":      _qdf["chg_15d"].apply(_chg_fmt),
+            "30일(%)":      _qdf["chg_30d"].apply(_chg_fmt),
             "PER":          _qdf["per"].apply(lambda x: _qf(x)),
             "PBR":          _qdf["pbr"].apply(lambda x: _qf(x, 2)),
             "EPS성장(%)":   _qdf["eps_growth"].apply(lambda x: _qf(x)),
@@ -1480,27 +1490,97 @@ if market_data_raw and ratios_data:
             "ROE(%)":       _qdf["roe"].apply(lambda x: _qf(x)),
         })
 
-        def _style_quant(row):
-            styles = [""] * len(row)
-            score_col = list(row.index).index("팩터점수") if "팩터점수" in row.index else -1
-            if score_col >= 0:
+        # 등락률 원시값 (스타일 적용용 — 숫자 기반 판단)
+        _chg_raw = {
+            "전일(%)":  _qdf["chg_1d"].tolist(),
+            "7일(%)":   _qdf["chg_7d"].tolist(),
+            "15일(%)":  _qdf["chg_15d"].tolist(),
+            "30일(%)":  _qdf["chg_30d"].tolist(),
+        }
+        _CHG_COLS = list(_chg_raw.keys())
+        _CHG_THRESHOLDS = [
+            (5.0,   "#166534", "#dcfce7"),   # 강한 상승 (짙은 녹)
+            (2.0,   "#15803d", "#f0fdf4"),   # 상승
+            (-2.0,  "#92400e", "#fef9c3"),   # 약보합 (노랑, -2~+2는 중립 아님)
+            (-5.0,  "#b91c1c", "#fee2e2"),   # 하락
+        ]
+
+        def _style_quant(df_row):
+            row_idx = df_row.name          # 정수 인덱스
+            styles  = [""] * len(df_row)
+            col_names = list(df_row.index)
+
+            # ── 팩터점수 강조 ─────────────────────────────────────────────────────
+            if "팩터점수" in col_names:
+                sc_idx = col_names.index("팩터점수")
                 try:
-                    score = float(row.iloc[score_col])
-                    if score >= 0.75:
-                        styles[score_col] = "background-color:#dcfce7; color:#15803d; font-weight:bold"
-                    elif score >= 0.60:
-                        styles[score_col] = "background-color:#fef9c3; color:#92400e"
+                    sc = float(df_row.iloc[sc_idx])
+                    if sc >= 0.75:
+                        styles[sc_idx] = "background-color:#dcfce7; color:#15803d; font-weight:bold"
+                    elif sc >= 0.60:
+                        styles[sc_idx] = "background-color:#fef9c3; color:#92400e"
                 except (ValueError, TypeError):
                     pass
+
+            # ── 등락률 컬럼 색상 강조 ─────────────────────────────────────────────
+            for col in _CHG_COLS:
+                if col not in col_names:
+                    continue
+                ci   = col_names.index(col)
+                raws = _chg_raw[col]
+                val  = raws[row_idx] if row_idx < len(raws) else None
+                if val is None or (isinstance(val, float) and val != val):
+                    continue
+                val = float(val)
+                if val >= 5.0:
+                    styles[ci] = "background-color:#dcfce7; color:#166534; font-weight:bold"
+                elif val >= 2.0:
+                    styles[ci] = "background-color:#f0fdf4; color:#15803d"
+                elif val >= 0.0:
+                    styles[ci] = "background-color:#f8fff8; color:#166534"
+                elif val >= -2.0:
+                    styles[ci] = "background-color:#fff8f8; color:#b91c1c"
+                elif val >= -5.0:
+                    styles[ci] = "background-color:#fee2e2; color:#b91c1c"
+                else:
+                    styles[ci] = "background-color:#fecaca; color:#7f1d1d; font-weight:bold"
+
             return styles
 
         st.dataframe(
             _display.style.apply(_style_quant, axis=1),
             use_container_width=True,
             hide_index=True,
-            height=420,
+            height=480,
         )
-        st.caption(f"총 {len(_qresults)}개 종목 | 시총 하위 20% 필터 적용")
+
+        # ── 등락률 데이터 설명 ────────────────────────────────────────────────────
+        _has_hist = sum(
+            1 for r in _qresults
+            if r.get("chg_7d") is not None
+        )
+        _missing = len(_qresults) - _has_hist
+
+        _legend_cols = st.columns(6)
+        for _lc, (_label, _bg, _tx) in zip(_legend_cols, [
+            ("▲5%+",  "#dcfce7", "#166534"),
+            ("▲2~5%", "#f0fdf4", "#15803d"),
+            ("▲0~2%", "#f8fff8", "#166534"),
+            ("▼0~2%", "#fff8f8", "#b91c1c"),
+            ("▼2~5%", "#fee2e2", "#b91c1c"),
+            ("▼5%+",  "#fecaca", "#7f1d1d"),
+        ]):
+            _lc.markdown(
+                f'<div style="background:{_bg};color:{_tx};padding:4px 8px;'
+                f'border-radius:4px;font-size:12px;text-align:center">{_label}</div>',
+                unsafe_allow_html=True,
+            )
+
+        _cap_parts = [f"총 {len(_qresults)}개 종목 | 시총 하위 20% 필터 적용"]
+        if _missing > 0:
+            _cap_parts.append(f"7·15·30일 등락률: {_has_hist}개 조회 완료, {_missing}개 미조회(pykrx 실패 또는 상장 이력 부족)")
+        st.caption(" | ".join(_cap_parts))
+
     else:
         st.info("퀀트 스크리닝 조건에 해당하는 종목이 없습니다.")
 else:
