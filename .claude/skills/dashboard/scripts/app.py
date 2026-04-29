@@ -7,6 +7,11 @@ import os
 from datetime import date, datetime
 from pathlib import Path
 
+import sys
+
+# Streamlit Cloud의 워킹 디렉토리는 레포 루트이므로 이 파일의 디렉토리를 경로에 추가
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
