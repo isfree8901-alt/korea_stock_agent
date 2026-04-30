@@ -381,6 +381,7 @@ with st.sidebar:
         '<a href="#ratios">💹 재무비율 분석</a><br>'
         '<a href="#quant">🔬 퀀트 소형주 스크리너</a><br>'
         '<a href="#trade-note">📒 트레이드 노트</a><br>'
+        '<a href="#ai-power">⚡ AI 전력 인프라</a><br>'
         '<a href="#disclosure">⚠️ 공시 경고</a><br>'
         '<a href="#pipeline">🔧 파이프라인 로그</a>',
         unsafe_allow_html=True,
@@ -1871,6 +1872,114 @@ if rankings_data and ratios_data:
         st.warning("DART 데이터 누락 종목:\n\n" + "\n".join(f"- {w}" for w in warned))
     else:
         st.success("섹터 Top10 전원 DART 데이터 정상")
+
+st.divider()
+
+# ─── SECTION: AI 전력 인프라 관심종목 ────────────────────────────────────────
+
+st.markdown('<a id="ai-power"></a>', unsafe_allow_html=True)
+st.header("⚡ AI 전력 인프라 관심종목")
+
+_AI_POWER_PATH = BASE_DIR / "data" / "ai_power_sector.json"
+
+def _load_ai_power() -> dict:
+    if not _AI_POWER_PATH.exists():
+        return {}
+    try:
+        return json.loads(_AI_POWER_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+def _save_ai_power(data: dict) -> None:
+    _AI_POWER_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+_ap = _load_ai_power()
+if not _ap:
+    st.warning("data/ai_power_sector.json 파일이 없습니다.")
+else:
+    st.caption(
+        f"**{_ap.get('description', '')}**  \n"
+        f"최종 수정: {_ap.get('last_updated', '—')} | 총 {sum(len(s['stocks']) for s in _ap.get('stages', []))}개 종목"
+    )
+
+    _SIZE_COLOR = {"대형": "#1e40af", "중형": "#065f46", "소형": "#92400e"}
+
+    _stage_tabs = st.tabs([
+        f"{s['emoji']} {s['stage']}단계: {s['name']}"
+        for s in _ap.get("stages", [])
+    ])
+
+    for _tab, _stage in zip(_stage_tabs, _ap.get("stages", [])):
+        with _tab:
+            st.caption(f"**{_stage['description']}**")
+            st.markdown("")
+
+            _cols = st.columns(2)
+            for _si, _stk in enumerate(_stage["stocks"]):
+                _tk = _stk["ticker"]
+                _mkt = (market_data_raw or {}).get(_tk, {})
+                _close  = _mkt.get("close")
+                _chg    = _mkt.get("change_rate")
+                _mktcap = _mkt.get("market_cap")
+
+                _close_str  = f"₩{_close:,.0f}" if _close else "—"
+                _chg_str    = f"{_chg:+.2f}%" if _chg is not None else "—"
+                _chg_color  = "#15803d" if (_chg or 0) >= 0 else "#b91c1c"
+                _cap_str    = f"{_mktcap/100000000:,.0f}억" if _mktcap else "—"
+                _sz_color   = _SIZE_COLOR.get(_stk.get("size", ""), "#374151")
+
+                with _cols[_si % 2]:
+                    st.markdown(
+                        f"""<div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+  <span style="font-weight:700;font-size:15px">{_stk['name']}</span>
+  <span style="background:{_sz_color};color:#fff;font-size:11px;padding:2px 7px;border-radius:10px">{_stk.get('size','')}</span>
+</div>
+<div style="color:#6b7280;font-size:12px;margin-bottom:6px">{_tk}</div>
+<div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
+  <span>현재가 <b>{_close_str}</b></span>
+  <span style="color:{_chg_color}"><b>{_chg_str}</b></span>
+  <span style="color:#6b7280">시총 {_cap_str}</span>
+</div>
+<div style="font-size:12px;color:#374151;line-height:1.5">{_stk['thesis']}</div>
+</div>""",
+                        unsafe_allow_html=True,
+                    )
+
+            # ── 종목 추가 / 삭제 편집기 ──────────────────────────────────────
+            with st.expander(f"✏️ {_stage['name']} 단계 종목 편집"):
+                st.markdown("**종목 삭제**")
+                _del_names = [s["name"] for s in _stage["stocks"]]
+                _to_del = st.multiselect(
+                    "삭제할 종목 선택",
+                    _del_names,
+                    key=f"ai_del_{_stage['key']}",
+                )
+
+                st.markdown("**종목 추가**")
+                _c1, _c2, _c3 = st.columns([2, 2, 1])
+                _new_name   = _c1.text_input("종목명", key=f"ai_add_name_{_stage['key']}", placeholder="예: 현대건설")
+                _new_ticker = _c2.text_input("티커 (6자리)", key=f"ai_add_ticker_{_stage['key']}", placeholder="000720")
+                _new_size   = _c3.selectbox("구분", ["대형", "중형", "소형"], key=f"ai_add_size_{_stage['key']}")
+                _new_thesis = st.text_area("투자 논리 (한 줄)", key=f"ai_add_thesis_{_stage['key']}", placeholder="핵심 수혜 이유를 간결하게 기술")
+
+                if st.button("💾 저장", key=f"ai_save_{_stage['key']}"):
+                    _fresh = _load_ai_power()
+                    for _fs in _fresh["stages"]:
+                        if _fs["key"] == _stage["key"]:
+                            _fs["stocks"] = [s for s in _fs["stocks"] if s["name"] not in _to_del]
+                            if _new_name.strip() and _new_ticker.strip():
+                                _fs["stocks"].append({
+                                    "name": _new_name.strip(),
+                                    "ticker": _new_ticker.strip().zfill(6),
+                                    "size": _new_size,
+                                    "thesis": _new_thesis.strip(),
+                                })
+                            break
+                    _fresh["last_updated"] = date.today().isoformat()
+                    _save_ai_power(_fresh)
+                    st.success("저장 완료")
+                    st.rerun()
 
 st.divider()
 
