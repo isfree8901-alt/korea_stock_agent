@@ -68,7 +68,7 @@ def build_output(articles: list[dict], keyword_dict: dict) -> dict:
             "article_count": len(arts),
             "summary": build_sector_summary(arts),
             "keywords": keywords_found,
-            "articles": [{"title": a["title"], "key_sentences": a.get("key_sentences", [])} for a in arts],
+            "articles": [{"title": a["title"], "key_sentences": a.get("key_sentences", []), "url": a.get("url", "")} for a in arts],
         }
 
     return result

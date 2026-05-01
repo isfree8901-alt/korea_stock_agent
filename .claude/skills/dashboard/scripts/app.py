@@ -4,7 +4,9 @@ STEP 7 - Streamlit 대시보드 (LLM-Free)
 """
 import json
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timezone, timedelta
+
+KST = timezone(timedelta(hours=9))
 from pathlib import Path
 
 import sys
@@ -210,7 +212,7 @@ def load_json_safe(filename: str, silent: bool = False) -> dict | list | None:
 def file_mtime(filename: str) -> str:
     path = OUTPUT_DIR / filename
     if path.exists():
-        return datetime.fromtimestamp(path.stat().st_mtime).strftime("%m/%d %H:%M")
+        return datetime.fromtimestamp(path.stat().st_mtime, tz=KST).strftime("%m/%d %H:%M KST")
     return "없음"
 
 
@@ -351,6 +353,21 @@ h2 { border-left: 4px solid #1f77b4; padding-left: 10px; margin-top: 1.5rem; }
 }
 /* 구분선 강화 */
 hr { border-top: 2px solid #e2e8f0 !important; margin: 1.5rem 0 !important; }
+/* 탭 색상 구분 */
+button[data-baseweb="tab"]:nth-of-type(1) { border-bottom: 3px solid #f59e0b !important; }
+button[data-baseweb="tab"]:nth-of-type(2) { border-bottom: 3px solid #3b82f6 !important; }
+button[data-baseweb="tab"]:nth-of-type(3) { border-bottom: 3px solid #22c55e !important; }
+button[data-baseweb="tab"]:nth-of-type(4) { border-bottom: 3px solid #8b5cf6 !important; }
+button[data-baseweb="tab"]:nth-of-type(5) { border-bottom: 3px solid #ef4444 !important; }
+button[data-baseweb="tab"]:nth-of-type(6) { border-bottom: 3px solid #0ea5e9 !important; }
+button[data-baseweb="tab"]:nth-of-type(7) { border-bottom: 3px solid #6b7280 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(1) { background:#fef3c7 !important; color:#92400e !important; font-weight:700 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(2) { background:#dbeafe !important; color:#1e40af !important; font-weight:700 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(3) { background:#dcfce7 !important; color:#166534 !important; font-weight:700 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(4) { background:#f3e8ff !important; color:#6b21a8 !important; font-weight:700 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(5) { background:#fee2e2 !important; color:#991b1b !important; font-weight:700 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(6) { background:#e0f2fe !important; color:#0c4a6e !important; font-weight:700 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(7) { background:#f1f5f9 !important; color:#374151 !important; font-weight:700 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -420,18 +437,6 @@ with st.sidebar:
         mtime = file_mtime(fname) if ok else "없음"
         st.markdown(f"{icon} **{label}** `{mtime}`")
 
-    st.markdown("---")
-    st.markdown("### 📌 탭 구성")
-    st.markdown(
-        "**⭐ 관심종목·AI전력**<br>"
-        "**🌟 시장분석** — 주목섹터·Top10·재무<br>"
-        "**🔬 종목탐색** — 퀀트·검색<br>"
-        "**📰 뉴스·공시**<br>"
-        "**📒 트레이드**<br>"
-        "**⚙️ 시스템**",
-        unsafe_allow_html=True,
-    )
-
     # 사이드바 관심 종목 미니 목록
     st.markdown("---")
     _sb_wl = _load_watchlist()
@@ -453,15 +458,6 @@ with st.sidebar:
             )
         if len(_sb_wl) > 10:
             st.caption(f"+ {len(_sb_wl)-10}개 더")
-
-    st.markdown("---")
-    st.markdown("### 🔍 종목 검색")
-    st.text_input(
-        "종목명 또는 티커",
-        key="stock_search_query",
-        placeholder="예: 삼성전자, 005930",
-        label_visibility="collapsed",
-    )
 
     st.markdown("---")
     st.markdown("### 🔧 표시 설정")
@@ -502,7 +498,8 @@ with st.sidebar:
 # ─── 헤더 ────────────────────────────────────────────────────────────────────
 
 st.title("📈 Korea Stock Agent — 섹터 리밸런싱 트래커")
-st.caption(f"기준일: {date.today().strftime('%Y-%m-%d')} | 갱신: {datetime.now().strftime('%H:%M')}")
+_now_kst = datetime.now(KST)
+st.caption(f"기준일: {date.today().strftime('%Y-%m-%d')} | 갱신: {_now_kst.strftime('%H:%M KST')}")
 
 # ─── How to Use ───────────────────────────────────────────────────────────────
 
@@ -1115,12 +1112,13 @@ def _render_stock_table(rows: list[dict], height: int = 360, table_key: str = "d
 
 # ─── 메인 탭 ─────────────────────────────────────────────────────────────────
 
-_tab_watch, _tab_market, _tab_screen, _tab_news, _tab_trade, _tab_system = st.tabs([
-    "⭐ 관심종목·AI전력",
+_tab_watch, _tab_market, _tab_screen, _tab_news, _tab_trade, _tab_global, _tab_system = st.tabs([
+    "⭐ 관심종목·미래산업",
     "🌟 시장분석",
     "🔬 종목탐색",
     "📰 뉴스·공시",
     "📒 트레이드",
+    "🌍 해외주식",
     "⚙️ 시스템",
 ])
 
@@ -1324,12 +1322,14 @@ with _tab_watch:
     st.divider()
 
     st.divider()
-    # ─── SECTION: AI 전력 인프라 관심종목 ────────────────────────────────────────
+    # ─── SECTION: 미래 산업 섹터 ─────────────────────────────────────────────────
 
-    st.markdown('<a id="ai-power"></a>', unsafe_allow_html=True)
-    st.header("⚡ AI 전력 인프라 관심종목")
+    st.markdown('<a id="future-sector"></a>', unsafe_allow_html=True)
+    st.header("🚀 미래 산업 섹터")
 
-    _AI_POWER_PATH = BASE_DIR / "data" / "ai_power_sector.json"
+    _AI_POWER_PATH    = BASE_DIR / "data" / "ai_power_sector.json"
+    _AI_SECURITY_PATH = BASE_DIR / "data" / "ai_security_sector.json"
+    _SIZE_COLOR = {"대형": "#1e40af", "중형": "#065f46", "소형": "#92400e"}
 
     def _load_ai_power() -> dict:
         if not _AI_POWER_PATH.exists():
@@ -1342,103 +1342,128 @@ with _tab_watch:
     def _save_ai_power(data: dict) -> None:
         _AI_POWER_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    _ap = _load_ai_power()
-    if not _ap:
-        st.warning("data/ai_power_sector.json 파일이 없습니다.")
-    else:
-        st.caption(
-            f"**{_ap.get('description', '')}**  \n"
-            f"최종 수정: {_ap.get('last_updated', '—')} | 총 {sum(len(s['stocks']) for s in _ap.get('stages', []))}개 종목"
-        )
+    def _load_ai_security() -> dict:
+        if not _AI_SECURITY_PATH.exists():
+            return {}
+        try:
+            return json.loads(_AI_SECURITY_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
 
-        _SIZE_COLOR = {"대형": "#1e40af", "중형": "#065f46", "소형": "#92400e"}
+    def _render_stock_cards_and_table(stocks: list[dict], table_key_prefix: str) -> None:
+        """종목 카드 + 재무·가격 테이블 렌더러 (AI 섹터 공통)."""
+        _cols = st.columns(2)
+        for _si, _stk in enumerate(stocks):
+            _tk = _stk["ticker"]
+            if not _tk:
+                continue
+            _mkt = (market_data_raw or {}).get(_tk, {})
+            _close  = _mkt.get("close")
+            _chg    = _mkt.get("change_rate")
+            _mktcap = _mkt.get("market_cap")
+            _close_str = f"₩{_close:,.0f}" if _close else "—"
+            _chg_str   = f"{_chg:+.2f}%" if _chg is not None else "—"
+            _chg_color = "#15803d" if (_chg or 0) >= 0 else "#b91c1c"
+            _cap_str   = f"{_mktcap/100000000:,.0f}억" if _mktcap else "—"
+            _sz_color  = _SIZE_COLOR.get(_stk.get("size", ""), "#374151")
+            with _cols[_si % 2]:
+                st.markdown(
+                    f"""<div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;margin-bottom:10px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <span style="font-weight:700;font-size:15px">{_stk['name']}</span>
+    <span style="background:{_sz_color};color:#fff;font-size:11px;padding:2px 7px;border-radius:10px">{_stk.get('size','')}</span>
+  </div>
+  <div style="color:#6b7280;font-size:12px;margin-bottom:6px">{_tk}</div>
+  <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
+    <span>현재가 <b>{_close_str}</b></span>
+    <span style="color:{_chg_color}"><b>{_chg_str}</b></span>
+    <span style="color:#6b7280">시총 {_cap_str}</span>
+  </div>
+  <div style="font-size:12px;color:#374151;line-height:1.5">{_stk.get('thesis','')}</div>
+</div>""",
+                    unsafe_allow_html=True,
+                )
+        valid_tickers = [s["ticker"] for s in stocks if s.get("ticker")]
+        stk_name_map  = {s["ticker"]: s["name"] for s in stocks if s.get("ticker")}
+        if market_data_raw and valid_tickers:
+            st.markdown("##### 📊 재무·가격 데이터")
+            with st.spinner("데이터 조회 중..."):
+                _rows = _build_stock_rows(valid_tickers)
+            for _row in _rows:
+                if _row["ticker"] in stk_name_map:
+                    _row["name"] = stk_name_map[_row["ticker"]]
+            _render_stock_table(_rows, height=len(valid_tickers) * 38 + 60, table_key=table_key_prefix)
+        else:
+            st.caption("⚠️ 재무·가격 데이터 없음 — 파이프라인 실행 후 표시됩니다.")
 
-        _stage_tabs = st.tabs([
-            f"{s['emoji']} {s['stage']}단계: {s['name']}"
-            for s in _ap.get("stages", [])
-        ])
+    _future_sub_tabs = st.tabs(["⚡ AI 전력 인프라", "🛡️ AI 보안"])
 
-        for _tab, _stage in zip(_stage_tabs, _ap.get("stages", [])):
-            with _tab:
-                st.caption(f"**{_stage['description']}**")
-                st.markdown("")
+    # ── ① AI 전력 인프라 ─────────────────────────────────────────────────────────
+    with _future_sub_tabs[0]:
+        _ap = _load_ai_power()
+        if not _ap:
+            st.warning("data/ai_power_sector.json 파일이 없습니다.")
+        else:
+            st.caption(
+                f"**{_ap.get('description', '')}**  \n"
+                f"최종 수정: {_ap.get('last_updated', '—')} | 총 {sum(len(s['stocks']) for s in _ap.get('stages', []))}개 종목"
+            )
+            _stage_tabs = st.tabs([
+                f"{s['emoji']} {s['stage']}단계: {s['name']}"
+                for s in _ap.get("stages", [])
+            ])
+            for _st_tab, _stage in zip(_stage_tabs, _ap.get("stages", [])):
+                with _st_tab:
+                    st.caption(f"**{_stage['description']}**")
+                    st.markdown("")
+                    _render_stock_cards_and_table(_stage["stocks"], f"aip_{_stage['key']}")
 
-                _cols = st.columns(2)
-                for _si, _stk in enumerate(_stage["stocks"]):
-                    _tk = _stk["ticker"]
-                    _mkt = (market_data_raw or {}).get(_tk, {})
-                    _close  = _mkt.get("close")
-                    _chg    = _mkt.get("change_rate")
-                    _mktcap = _mkt.get("market_cap")
+                    with st.expander(f"✏️ {_stage['name']} 단계 종목 편집"):
+                        st.markdown("**종목 삭제**")
+                        _del_names = [s["name"] for s in _stage["stocks"]]
+                        _to_del = st.multiselect("삭제할 종목 선택", _del_names, key=f"ai_del_{_stage['key']}")
+                        st.markdown("**종목 추가**")
+                        _c1, _c2, _c3 = st.columns([2, 2, 1])
+                        _new_name   = _c1.text_input("종목명", key=f"ai_add_name_{_stage['key']}", placeholder="예: 현대건설")
+                        _new_ticker = _c2.text_input("티커 (6자리)", key=f"ai_add_ticker_{_stage['key']}", placeholder="000720")
+                        _new_size   = _c3.selectbox("구분", ["대형", "중형", "소형"], key=f"ai_add_size_{_stage['key']}")
+                        _new_thesis = st.text_area("투자 논리", key=f"ai_add_thesis_{_stage['key']}", placeholder="핵심 수혜 이유")
+                        if st.button("💾 저장", key=f"ai_save_{_stage['key']}"):
+                            _fresh = _load_ai_power()
+                            for _fs in _fresh["stages"]:
+                                if _fs["key"] == _stage["key"]:
+                                    _fs["stocks"] = [s for s in _fs["stocks"] if s["name"] not in _to_del]
+                                    if _new_name.strip() and _new_ticker.strip():
+                                        _fs["stocks"].append({
+                                            "name": _new_name.strip(),
+                                            "ticker": _new_ticker.strip().zfill(6),
+                                            "size": _new_size,
+                                            "thesis": _new_thesis.strip(),
+                                        })
+                                    break
+                            _fresh["last_updated"] = date.today().isoformat()
+                            _save_ai_power(_fresh)
+                            st.success("저장 완료")
+                            st.rerun()
 
-                    _close_str  = f"₩{_close:,.0f}" if _close else "—"
-                    _chg_str    = f"{_chg:+.2f}%" if _chg is not None else "—"
-                    _chg_color  = "#15803d" if (_chg or 0) >= 0 else "#b91c1c"
-                    _cap_str    = f"{_mktcap/100000000:,.0f}억" if _mktcap else "—"
-                    _sz_color   = _SIZE_COLOR.get(_stk.get("size", ""), "#374151")
-
-                    with _cols[_si % 2]:
-                        st.markdown(
-                            f"""<div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;margin-bottom:10px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-      <span style="font-weight:700;font-size:15px">{_stk['name']}</span>
-      <span style="background:{_sz_color};color:#fff;font-size:11px;padding:2px 7px;border-radius:10px">{_stk.get('size','')}</span>
-    </div>
-    <div style="color:#6b7280;font-size:12px;margin-bottom:6px">{_tk}</div>
-    <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
-      <span>현재가 <b>{_close_str}</b></span>
-      <span style="color:{_chg_color}"><b>{_chg_str}</b></span>
-      <span style="color:#6b7280">시총 {_cap_str}</span>
-    </div>
-    <div style="font-size:12px;color:#374151;line-height:1.5">{_stk['thesis']}</div>
-    </div>""",
-                            unsafe_allow_html=True,
-                        )
-
-                # ── 재무·가격 테이블 ──────────────────────────────────────────────
-                _stage_tickers = [s["ticker"] for s in _stage["stocks"]]
-                if market_data_raw:
-                    st.markdown("##### 📊 재무·가격 데이터")
-                    with st.spinner("데이터 조회 중..."):
-                        _stage_rows = _build_stock_rows(_stage_tickers)
-                    _render_stock_table(_stage_rows, height=len(_stage_tickers) * 38 + 60, table_key=f"ai_{_stage['key']}")
-                else:
-                    st.caption("⚠️ 재무·가격 데이터 없음 — 파이프라인 실행 후 표시됩니다.")
-
-                # ── 종목 추가 / 삭제 편집기 ──────────────────────────────────────
-                with st.expander(f"✏️ {_stage['name']} 단계 종목 편집"):
-                    st.markdown("**종목 삭제**")
-                    _del_names = [s["name"] for s in _stage["stocks"]]
-                    _to_del = st.multiselect(
-                        "삭제할 종목 선택",
-                        _del_names,
-                        key=f"ai_del_{_stage['key']}",
-                    )
-
-                    st.markdown("**종목 추가**")
-                    _c1, _c2, _c3 = st.columns([2, 2, 1])
-                    _new_name   = _c1.text_input("종목명", key=f"ai_add_name_{_stage['key']}", placeholder="예: 현대건설")
-                    _new_ticker = _c2.text_input("티커 (6자리)", key=f"ai_add_ticker_{_stage['key']}", placeholder="000720")
-                    _new_size   = _c3.selectbox("구분", ["대형", "중형", "소형"], key=f"ai_add_size_{_stage['key']}")
-                    _new_thesis = st.text_area("투자 논리 (한 줄)", key=f"ai_add_thesis_{_stage['key']}", placeholder="핵심 수혜 이유를 간결하게 기술")
-
-                    if st.button("💾 저장", key=f"ai_save_{_stage['key']}"):
-                        _fresh = _load_ai_power()
-                        for _fs in _fresh["stages"]:
-                            if _fs["key"] == _stage["key"]:
-                                _fs["stocks"] = [s for s in _fs["stocks"] if s["name"] not in _to_del]
-                                if _new_name.strip() and _new_ticker.strip():
-                                    _fs["stocks"].append({
-                                        "name": _new_name.strip(),
-                                        "ticker": _new_ticker.strip().zfill(6),
-                                        "size": _new_size,
-                                        "thesis": _new_thesis.strip(),
-                                    })
-                                break
-                        _fresh["last_updated"] = date.today().isoformat()
-                        _save_ai_power(_fresh)
-                        st.success("저장 완료")
-                        st.rerun()
+    # ── ② AI 보안 ────────────────────────────────────────────────────────────────
+    with _future_sub_tabs[1]:
+        _asec = _load_ai_security()
+        if not _asec:
+            st.warning("data/ai_security_sector.json 파일이 없습니다.")
+        else:
+            st.caption(
+                f"**{_asec.get('description', '')}**  \n"
+                f"최종 수정: {_asec.get('last_updated', '—')} | 총 {sum(len(g['stocks']) for g in _asec.get('groups', []))}개 종목"
+            )
+            _sec_group_tabs = st.tabs([
+                f"{g['emoji']} {g['name']}" for g in _asec.get("groups", [])
+            ])
+            for _sg_tab, _grp in zip(_sec_group_tabs, _asec.get("groups", [])):
+                with _sg_tab:
+                    st.caption(f"**{_grp['description']}**")
+                    st.markdown("")
+                    _render_stock_cards_and_table(_grp["stocks"], f"aisec_{_grp['group_key']}")
 
     st.divider()
 
@@ -1515,7 +1540,7 @@ with _tab_market:
     # ─── SECTION 1: 향후 6개월 주목 섹터 ─────────────────────────────────────────
 
     st.markdown('<a id="highlight"></a>', unsafe_allow_html=True)
-    st.header("🌟 향후 6개월 주목 섹터")
+    st.header("🌟 뉴스·모멘텀 주목 섹터")
 
     if themes_data:
         highlighted = {s: t for s, t in themes_data.items() if t.get("highlight")}
@@ -1540,11 +1565,6 @@ with _tab_market:
                     _hc1, _hc2 = st.columns(2)
                     _hc1.metric("뉴스 감성", "긍정" if sent > 0.3 else ("부정" if sent < -0.2 else "중립"))
                     _hc2.metric("기사수", f"{art_cnt}건")
-                    if krx_match and st.button(
-                        "📊 Top10 바로 보기", key=f"jump_top10_{sector}", use_container_width=True
-                    ):
-                        st.session_state["focus_krx_sector"] = krx_match
-                        st.rerun()
 
         # 전 섹터 수평 바 차트
         sectors_sorted = sorted(
@@ -2184,6 +2204,87 @@ with _tab_market:
 
 
 with _tab_screen:
+    # ─── 종목 검색 ────────────────────────────────────────────────────────────────
+
+    st.markdown("### 🔍 종목 검색")
+    _sq_col1, _sq_col2 = st.columns([4, 1])
+    with _sq_col1:
+        st.text_input(
+            "종목명 또는 티커",
+            key="stock_search_query",
+            placeholder="예: 삼성전자, 005930, SK하이닉스",
+            label_visibility="collapsed",
+        )
+
+    _sq = (st.session_state.get("stock_search_query") or "").strip()
+    if _sq and market_data_raw:
+        st.markdown('<a id="search-result"></a>', unsafe_allow_html=True)
+        _matches = [
+            (tkr, info)
+            for tkr, info in market_data_raw.items()
+            if _sq.lower() in info.get("name", "").lower() or _sq in tkr
+        ]
+        st.subheader(f"🔍 '{_sq}' 검색 결과 ({len(_matches)}건)")
+        if _matches:
+            _search_tickers = [tkr for tkr, _ in _matches[:20]]
+            with st.spinner("가격 데이터 조회 중..."):
+                _search_rows = _build_stock_rows(_search_tickers)
+            _render_stock_table(_search_rows, height=min(560, max(220, len(_search_tickers) * 38 + 60)), table_key="search")
+
+            _wl_now = _load_watchlist()
+            _wl_tickers_now = {w["ticker"] for w in _wl_now}
+            _not_in_wl = [(tkr, info) for tkr, info in _matches[:20] if tkr not in _wl_tickers_now]
+            if _not_in_wl:
+                st.caption("☆ 관심 종목에 추가")
+                _wl_add_cols = st.columns(min(5, len(_not_in_wl)))
+                for _ci, (tkr, info) in enumerate(_not_in_wl[:5]):
+                    nm = info.get("name", tkr)
+                    with _wl_add_cols[_ci]:
+                        if st.button(f"☆ {nm}", key=f"wl_srch_{tkr}", use_container_width=True):
+                            _wl_add(tkr, nm)
+                            st.rerun()
+
+            _rank_map_s: dict[str, tuple[str, int]] = {}
+            for _sec, _sv in rankings_data.items():
+                for _it in _sv.get("top10", []):
+                    _rank_map_s[_it["ticker"]] = (_sec, _it["rank"])
+
+            with st.expander("📒 트레이드 노트에 추가"):
+                _sel_name = st.selectbox(
+                    "종목 선택",
+                    [info.get("name", tkr) for tkr, info in _matches[:20]],
+                    key="search_tn_select",
+                )
+                _sel_tkr = next((tkr for tkr, info in _matches[:20] if info.get("name", tkr) == _sel_name), None)
+                if _sel_tkr:
+                    _sel_close = market_data_raw.get(_sel_tkr, {}).get("close", 0)
+                    _existing_notes_s = _load_notes_smart()
+                    if _sel_name in _existing_notes_s and _existing_notes_s[_sel_name].get("status") == "보유중":
+                        st.warning(f"'{_sel_name}'은 이미 트레이드 노트에 보유 중입니다.")
+                    else:
+                        with st.form("search_tn_form", clear_on_submit=True):
+                            _sn1, _sn2, _sn3 = st.columns(3)
+                            _sn_price = _sn1.number_input("매수가(원)", value=int(_sel_close or 0), min_value=1, step=100)
+                            _sn_qty   = _sn2.number_input("수량(주)", value=1, min_value=1)
+                            _sn_date  = _sn3.date_input("매수일", value=date.today())
+                            _sn_memo  = st.text_input("메모", placeholder="매수 이유...")
+                            if st.form_submit_button("💾 저장", use_container_width=True):
+                                _existing_notes_s[_sel_name] = {
+                                    "ticker": _sel_tkr, "buy_price": int(_sn_price),
+                                    "quantity": int(_sn_qty), "buy_date": _sn_date.isoformat(),
+                                    "note": _sn_memo.strip(), "peak_price": int(_sn_price),
+                                    "status": "보유중",
+                                }
+                                _save_notes_smart(_existing_notes_s)
+                                st.success(f"✅ {_sel_name} 트레이드 노트에 추가됨!")
+                                st.rerun()
+        else:
+            st.info("일치하는 종목이 없습니다.")
+    elif _sq:
+        st.info("시장 데이터 없음 — 파이프라인을 실행하세요.")
+
+    st.divider()
+
     # ─── SECTION 6: 퀀트 소형주 스크리너 ──────────────────────────────────────────
 
     st.markdown('<a id="quant"></a>', unsafe_allow_html=True)
@@ -2300,76 +2401,6 @@ with _tab_screen:
         st.info("데이터 없음 — 파이프라인 실행 후 표시됩니다.")
 
     st.divider()
-
-    # ─── 종목 검색 결과 (퀀트 스크리너 아래) ─────────────────────────────────────────
-
-    _sq = (st.session_state.get("stock_search_query") or "").strip()
-    if _sq and market_data_raw:
-        st.markdown('<a id="search-result"></a>', unsafe_allow_html=True)
-        _matches = [
-            (tkr, info)
-            for tkr, info in market_data_raw.items()
-            if _sq.lower() in info.get("name", "").lower() or _sq in tkr
-        ]
-        st.subheader(f"🔍 '{_sq}' 검색 결과 ({len(_matches)}건)")
-        if _matches:
-            _search_tickers = [tkr for tkr, _ in _matches[:20]]
-            with st.spinner("가격 데이터 조회 중..."):
-                _search_rows = _build_stock_rows(_search_tickers)
-            _render_stock_table(_search_rows, height=min(560, max(220, len(_search_tickers) * 38 + 60)), table_key="search")
-
-            # ── 관심 종목 빠른 추가 ──────────────────────────────────────────────────
-            _wl_now = _load_watchlist()
-            _wl_tickers_now = {w["ticker"] for w in _wl_now}
-            _not_in_wl = [(tkr, info) for tkr, info in _matches[:20] if tkr not in _wl_tickers_now]
-            if _not_in_wl:
-                st.caption("☆ 관심 종목에 추가")
-                _wl_add_cols = st.columns(min(5, len(_not_in_wl)))
-                for _ci, (tkr, info) in enumerate(_not_in_wl[:5]):
-                    nm = info.get("name", tkr)
-                    with _wl_add_cols[_ci]:
-                        if st.button(f"☆ {nm}", key=f"wl_srch_{tkr}", use_container_width=True):
-                            _wl_add(tkr, nm)
-                            st.rerun()
-
-            # ── 트레이드 노트 빠른 추가 ──────────────────────────────────────────────
-            _rank_map_s: dict[str, tuple[str, int]] = {}
-            for _sec, _sv in rankings_data.items():
-                for _it in _sv.get("top10", []):
-                    _rank_map_s[_it["ticker"]] = (_sec, _it["rank"])
-
-            with st.expander("📒 트레이드 노트에 추가"):
-                _sel_name = st.selectbox(
-                    "종목 선택",
-                    [info.get("name", tkr) for tkr, info in _matches[:20]],
-                    key="search_tn_select",
-                )
-                _sel_tkr  = next((tkr for tkr, info in _matches[:20] if info.get("name", tkr) == _sel_name), None)
-                if _sel_tkr:
-                    _sel_close = market_data_raw.get(_sel_tkr, {}).get("close", 0)
-                    _existing_notes_s = _load_notes_smart()
-                    if _sel_name in _existing_notes_s and _existing_notes_s[_sel_name].get("status") == "보유중":
-                        st.warning(f"'{_sel_name}'은 이미 트레이드 노트에 보유 중입니다.")
-                    else:
-                        with st.form("search_tn_form", clear_on_submit=True):
-                            _sn1, _sn2, _sn3 = st.columns(3)
-                            _sn_price = _sn1.number_input("매수가(원)", value=int(_sel_close or 0), min_value=1, step=100)
-                            _sn_qty   = _sn2.number_input("수량(주)", value=1, min_value=1)
-                            _sn_date  = _sn3.date_input("매수일", value=date.today())
-                            _sn_memo  = st.text_input("메모", placeholder="매수 이유...")
-                            if st.form_submit_button("💾 저장", use_container_width=True):
-                                _existing_notes_s[_sel_name] = {
-                                    "ticker": _sel_tkr, "buy_price": int(_sn_price),
-                                    "quantity": int(_sn_qty), "buy_date": _sn_date.isoformat(),
-                                    "note": _sn_memo.strip(), "peak_price": int(_sn_price),
-                                    "status": "보유중",
-                                }
-                                _save_notes_smart(_existing_notes_s)
-                                st.success(f"✅ {_sel_name} 트레이드 노트에 추가됨!")
-                                st.rerun()
-        else:
-            st.info("일치하는 종목이 없습니다.")
-        st.divider()
 
 
 with _tab_news:
@@ -2808,6 +2839,221 @@ with _tab_trade:
             )
             st.metric("총 실현손익", f"{_total_real:+,}원",
                       delta_color="normal" if _total_real >= 0 else "inverse")
+
+    st.divider()
+
+
+with _tab_global:
+    # ─── 해외주식 (yfinance) ──────────────────────────────────────────────────────
+
+    st.header("🌍 해외주식 조회")
+    st.caption("Yahoo Finance(yfinance) 연동 — 미국·일본·유럽·홍콩 등 글로벌 종목 실시간 조회")
+
+    try:
+        import yfinance as _yf
+        _yf_available = True
+    except ImportError:
+        _yf_available = False
+
+    if not _yf_available:
+        st.error("yfinance 패키지가 설치되지 않았습니다. `pip install yfinance` 를 실행하세요.")
+    else:
+        # ── 자주 보는 종목 프리셋 ──────────────────────────────────────────────────
+        _GLOBAL_PRESETS: dict[str, list[tuple[str, str]]] = {
+            "🇺🇸 미국 빅테크": [
+                ("NVDA",  "엔비디아"),   ("MSFT",  "마이크로소프트"),
+                ("AAPL",  "애플"),       ("GOOGL", "알파벳"),
+                ("META",  "메타"),       ("AMZN",  "아마존"),
+                ("TSM",   "TSMC ADR"),   ("ASML",  "ASML ADR"),
+            ],
+            "🤖 AI·반도체": [
+                ("NVDA",  "엔비디아"),   ("AMD",   "AMD"),
+                ("INTC",  "인텔"),       ("QCOM",  "퀄컴"),
+                ("AVGO",  "브로드컴"),   ("ARM",   "ARM"),
+                ("TSM",   "TSMC ADR"),   ("AMAT",  "어플라이드머티리얼즈"),
+            ],
+            "⚡ AI 전력·인프라": [
+                ("GEV",   "GE Vernova"), ("CEG",   "Constellation Energy"),
+                ("ETN",   "이튼"),       ("VRT",   "Vertiv"),
+                ("EQIX",  "에퀴닉스"),   ("DLR",   "디지털리얼티"),
+                ("AME",   "AMETEK"),     ("PWR",   "Quanta Services"),
+            ],
+            "🛡️ 사이버보안": [
+                ("CRWD",  "크라우드스트라이크"), ("PANW", "팔로알토"),
+                ("ZS",    "지스케일러"),          ("FTNT", "포티넷"),
+                ("S",     "센티넬원"),             ("OKTA", "옥타"),
+                ("CYBR",  "사이버아크"),           ("NET",  "클라우드플레어"),
+            ],
+        }
+
+        _gp1, _gp2 = st.columns([3, 2])
+        with _gp1:
+            _g_search = st.text_input(
+                "티커 직접 입력",
+                placeholder="예: AAPL, TSLA, 005930.KS, 7203.T",
+                key="global_search",
+                label_visibility="collapsed",
+            )
+        with _gp2:
+            _preset_choice = st.selectbox(
+                "프리셋",
+                ["직접 입력"] + list(_GLOBAL_PRESETS.keys()),
+                key="global_preset",
+                label_visibility="collapsed",
+            )
+
+        # 조회할 티커 목록 결정
+        _g_tickers: list[tuple[str, str]] = []
+        if _preset_choice != "직접 입력":
+            _g_tickers = _GLOBAL_PRESETS[_preset_choice]
+        elif _g_search.strip():
+            _raw_tickers = [t.strip().upper() for t in _g_search.replace(",", " ").split() if t.strip()]
+            _g_tickers = [(t, t) for t in _raw_tickers[:10]]
+
+        if _g_tickers:
+            @st.cache_data(show_spinner="Yahoo Finance 조회 중...", ttl=300)
+            def _fetch_yf_summary(tickers_key: str) -> list[dict]:
+                tickers = [t for t, _ in eval(tickers_key)]  # noqa
+                results = []
+                for tkr in tickers:
+                    try:
+                        info = _yf.Ticker(tkr).fast_info
+                        results.append({
+                            "ticker":    tkr,
+                            "last":      getattr(info, "last_price",        None),
+                            "prev":      getattr(info, "previous_close",    None),
+                            "high52":    getattr(info, "year_high",         None),
+                            "low52":     getattr(info, "year_low",          None),
+                            "mktcap":    getattr(info, "market_cap",        None),
+                            "currency":  getattr(info, "currency",          "USD"),
+                        })
+                    except Exception:
+                        results.append({"ticker": tkr, "last": None, "prev": None,
+                                        "high52": None, "low52": None, "mktcap": None, "currency": "USD"})
+                return results
+
+            _tickers_key = str(_g_tickers)
+            _g_data = _fetch_yf_summary(_tickers_key)
+
+            # ── 요약 카드 ──────────────────────────────────────────────────────────
+            _name_map = {t: n for t, n in _g_tickers}
+            _card_cols = st.columns(min(4, len(_g_data)))
+            for _gi, _gd in enumerate(_g_data):
+                _gtk   = _gd["ticker"]
+                _gnm   = _name_map.get(_gtk, _gtk)
+                _glast = _gd["last"]
+                _gprev = _gd["prev"]
+                _gcur  = _gd.get("currency", "USD")
+                _gchg  = None
+                if _glast is not None and _gprev and _gprev != 0:
+                    _gchg = (_glast / _gprev - 1) * 100
+                with _card_cols[_gi % len(_card_cols)]:
+                    _gc_color = "#15803d" if (_gchg or 0) >= 0 else "#b91c1c"
+                    _g_52h = _gd.get("high52")
+                    _g_52l = _gd.get("low52")
+                    _g_pos = ""
+                    if _glast and _g_52h and _g_52l and _g_52h > _g_52l:
+                        _pos_pct = (_glast - _g_52l) / (_g_52h - _g_52l) * 100
+                        _g_pos = f" · 52주 {_pos_pct:.0f}%"
+                    st.markdown(
+                        f"""<div style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:8px">
+  <div style="font-weight:700;font-size:14px">{_gnm}</div>
+  <div style="color:#6b7280;font-size:11px;margin-bottom:4px">{_gtk}{_g_pos}</div>
+  <div style="font-size:18px;font-weight:700">{f"{_gcur} {_glast:,.2f}" if _glast else "—"}</div>
+  <div style="color:{_gc_color};font-size:13px;font-weight:600">{f"{_gchg:+.2f}%" if _gchg is not None else "—"}</div>
+</div>""",
+                        unsafe_allow_html=True,
+                    )
+
+            st.divider()
+
+            # ── 차트 ──────────────────────────────────────────────────────────────
+            st.markdown("#### 📈 상세 차트")
+            _chart_opts = [f"{n} ({t})" for t, n in _g_tickers]
+            _chart_sel  = st.selectbox("종목 선택", _chart_opts, key="global_chart_sel",
+                                        label_visibility="collapsed")
+            _chart_tkr  = _g_tickers[[f"{n} ({t})" for t, n in _g_tickers].index(_chart_sel)][0]
+            _chart_period = st.radio("기간", ["1mo", "3mo", "6mo", "1y", "2y"],
+                                      index=3, horizontal=True, key="global_chart_period")
+
+            @st.cache_data(show_spinner=False, ttl=300)
+            def _fetch_yf_hist(ticker: str, period: str) -> "pd.DataFrame | None":
+                try:
+                    df = _yf.Ticker(ticker).history(period=period)
+                    if df is not None and not df.empty:
+                        df = df.reset_index()
+                        df["Date"] = pd.to_datetime(df["Date"]).dt.tz_localize(None)
+                        return df
+                except Exception:
+                    pass
+                return None
+
+            _g_hist = _fetch_yf_hist(_chart_tkr, _chart_period)
+            if _g_hist is not None and not _g_hist.empty:
+                _g_fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                                       row_heights=[0.75, 0.25], vertical_spacing=0.03)
+                _g_fig.add_trace(go.Candlestick(
+                    x=_g_hist["Date"], open=_g_hist["Open"], high=_g_hist["High"],
+                    low=_g_hist["Low"], close=_g_hist["Close"],
+                    name=_chart_tkr,
+                    increasing_line_color="#15803d", decreasing_line_color="#b91c1c",
+                    increasing_fillcolor="#15803d", decreasing_fillcolor="#b91c1c",
+                ), row=1, col=1)
+                for _gp, _gc in [("20일", "#3b82f6"), ("60일", "#8b5cf6")]:
+                    _gd_n = int(_gp.replace("일", ""))
+                    if len(_g_hist) >= _gd_n:
+                        _g_fig.add_trace(go.Scatter(
+                            x=_g_hist["Date"],
+                            y=_g_hist["Close"].rolling(_gd_n).mean(),
+                            mode="lines", name=f"MA{_gd_n}",
+                            line=dict(color=_gc, width=1.5),
+                        ), row=1, col=1)
+                if "Volume" in _g_hist.columns:
+                    _gvol_c = [
+                        "#15803d" if _g_hist["Close"].iloc[i] >= _g_hist["Open"].iloc[i] else "#b91c1c"
+                        for i in range(len(_g_hist))
+                    ]
+                    _g_fig.add_trace(go.Bar(
+                        x=_g_hist["Date"], y=_g_hist["Volume"],
+                        marker_color=_gvol_c, showlegend=False,
+                    ), row=2, col=1)
+                _g_fig.update_layout(
+                    title=f"{_chart_sel}",
+                    xaxis_rangeslider_visible=False,
+                    height=560,
+                    margin=dict(l=10, r=10, t=45, b=10),
+                    paper_bgcolor="white", plot_bgcolor="#fafafa",
+                )
+                _g_fig.update_xaxes(showgrid=True, gridcolor="#e5e7eb")
+                _g_fig.update_yaxes(showgrid=True, gridcolor="#e5e7eb", row=1, col=1)
+                st.plotly_chart(_g_fig, use_container_width=True)
+            else:
+                st.warning(f"{_chart_tkr} 차트 데이터를 가져올 수 없습니다.")
+
+            # ── 요약 재무 테이블 ──────────────────────────────────────────────────
+            with st.expander("📋 전체 종목 요약 테이블"):
+                _g_rows = []
+                for _gd in _g_data:
+                    _gtk = _gd["ticker"]
+                    _glast = _gd["last"]
+                    _gprev = _gd.get("prev")
+                    _gcur  = _gd.get("currency", "USD")
+                    _gchg  = (_glast / _gprev - 1) * 100 if _glast and _gprev and _gprev != 0 else None
+                    _gmktcap = _gd.get("mktcap")
+                    _g_rows.append({
+                        "종목명":     _name_map.get(_gtk, _gtk),
+                        "티커":       _gtk,
+                        "현재가":     f"{_gcur} {_glast:,.2f}" if _glast else "—",
+                        "전일대비(%)": f"{_gchg:+.2f}%" if _gchg is not None else "—",
+                        "52주고":     f"{_gd.get('high52'):,.2f}" if _gd.get("high52") else "—",
+                        "52주저":     f"{_gd.get('low52'):,.2f}"  if _gd.get("low52")  else "—",
+                        "시가총액":   f"${_gmktcap/1e9:.1f}B" if _gmktcap and _gcur == "USD" else ("—" if not _gmktcap else f"{_gcur} {_gmktcap/1e9:.1f}B"),
+                    })
+                st.dataframe(pd.DataFrame(_g_rows), use_container_width=True, hide_index=True)
+
+        else:
+            st.info("프리셋을 선택하거나 티커를 직접 입력하세요. 예: NVDA, AAPL, TSMC, 7203.T")
+            st.caption("한국 종목: `005930.KS` (삼성전자), 일본: `7203.T` (도요타), 홍콩: `0700.HK` (텐센트)")
 
     st.divider()
 
