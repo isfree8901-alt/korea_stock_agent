@@ -58,6 +58,17 @@ def log_warn(msg: str) -> None:
     print(f"WARN: {msg}", file=sys.stderr)
 
 
+def _strip_html(text: str) -> str:
+    """HTML 태그·엔티티 제거 후 평문 반환."""
+    if not text:
+        return ""
+    soup = BeautifulSoup(text, "lxml")
+    # 이미지·스크립트 제거
+    for tag in soup(["img", "script", "style"]):
+        tag.decompose()
+    return soup.get_text(separator=" ", strip=True)
+
+
 def _normalize_date(raw: str) -> str:
     """RFC-2822 / ISO / 기타 형식을 ISO 8601(YYYY-MM-DD HH:MM:SS)로 통일."""
     if not raw:
@@ -82,7 +93,7 @@ def fetch_rss_feed(url: str, source_name: str) -> list[dict]:
         articles = []
         for entry in feed.entries:
             title = entry.get("title", "").strip()
-            content = entry.get("summary", entry.get("description", "")).strip()
+            content = _strip_html(entry.get("summary", entry.get("description", "")))
             raw_date = entry.get("published", entry.get("updated", ""))
             link = entry.get("link", "")
             if title:

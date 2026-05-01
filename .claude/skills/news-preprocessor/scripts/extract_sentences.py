@@ -11,6 +11,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -53,7 +54,8 @@ def score_sentences(sentences: list[str], doc_tokens: list[str]) -> list[tuple[f
 
 
 def extract_key_sentences(article: dict, top_n: int = 4) -> list[str]:
-    content = article.get("content", "")
+    raw_content = article.get("content", "")
+    content = BeautifulSoup(raw_content, "lxml").get_text(" ", strip=True) if raw_content else ""
     if not content or len(content) < 20:
         return [article.get("title", "")]
 
