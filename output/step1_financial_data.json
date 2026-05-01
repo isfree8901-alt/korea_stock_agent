@@ -25817,8 +25817,24 @@
     "corp_name": "세아홀딩스"
   },
   "013000": {
-    "disclosure_warning": true,
-    "reason": "HTTPSConnectionPool(host='opendart.fss.or.kr', port=443): Read timed out. (read timeout=30)"
+    "total_assets": 59366043111.0,
+    "total_assets_prev": 56576212583.0,
+    "total_equity": 54757757212.0,
+    "total_equity_prev": 51828532046.0,
+    "total_debt": 4608285899.0,
+    "total_debt_prev": 4747680537.0,
+    "operating_income": 2433262939.0,
+    "operating_income_prev": 2453243138.0,
+    "revenue": 32679926710.0,
+    "revenue_prev": 35874839491.0,
+    "eps": null,
+    "roe": null,
+    "pbr": null,
+    "per": null,
+    "debt_ratio": 8.415768164423849,
+    "disclosure_warning": false,
+    "period": "2025_11011",
+    "corp_name": "세우글로벌"
   },
   "100700": {
     "total_assets": 163871834274.0,
@@ -29749,8 +29765,22 @@
     "corp_name": "씨피시스템"
   },
   "013990": {
-    "disclosure_warning": true,
-    "reason": "HTTPSConnectionPool(host='opendart.fss.or.kr', port=443): Read timed out."
+    "operating_income": 13987123318.0,
+    "operating_income_prev": 15205969477.0,
+    "eps_raw": 417.0,
+    "eps_raw_prev": 367.0,
+    "net_income": 10636507683.0,
+    "net_income_prev": 10186280600.0,
+    "revenue": 189078048828.0,
+    "revenue_prev": 182742831122.0,
+    "eps": 417.0,
+    "roe": null,
+    "pbr": null,
+    "per": 12.613908872901678,
+    "debt_ratio": null,
+    "disclosure_warning": false,
+    "period": "2025_11011",
+    "corp_name": "아가방컴퍼니"
   },
   "123860": {
     "total_assets": 123451544564.0,
@@ -30415,8 +30445,28 @@
     "corp_name": "아시아종묘"
   },
   "227610": {
-    "disclosure_warning": true,
-    "reason": "HTTPSConnectionPool(host='opendart.fss.or.kr', port=443): Read timed out. (read timeout=30)"
+    "total_assets": 57848657221.0,
+    "total_assets_prev": 53240994881.0,
+    "total_equity": 18374829934.0,
+    "total_equity_prev": 21340463689.0,
+    "total_debt": 39473827287.0,
+    "total_debt_prev": 31900531192.0,
+    "operating_income": -1810505836.0,
+    "operating_income_prev": -3367749311.0,
+    "eps_raw": -99.0,
+    "eps_raw_prev": -200.0,
+    "net_income": -3637735412.0,
+    "net_income_prev": -6894851566.0,
+    "revenue": 42385393255.0,
+    "revenue_prev": 34685968494.0,
+    "eps": -99.0,
+    "roe": -19.797382751656873,
+    "pbr": null,
+    "per": null,
+    "debt_ratio": 214.82553813442004,
+    "disclosure_warning": false,
+    "period": "2025_11011",
+    "corp_name": "아우딘퓨쳐스"
   },
   "331740": {
     "total_assets": 69080004177.0,
@@ -32576,8 +32626,28 @@
     "corp_name": "앤로보틱스"
   },
   "092600": {
-    "disclosure_warning": true,
-    "reason": "HTTPSConnectionPool(host='opendart.fss.or.kr', port=443): Read timed out. (read timeout=30)"
+    "total_assets": 60587282737.0,
+    "total_assets_prev": 99273383375.0,
+    "total_equity": 39064063221.0,
+    "total_equity_prev": 23166164013.0,
+    "total_debt": 21523219516.0,
+    "total_debt_prev": 76107219362.0,
+    "operating_income": -17487383466.0,
+    "operating_income_prev": -26691493547.0,
+    "eps_raw": 509.0,
+    "eps_raw_prev": -763.0,
+    "net_income": 2840958181.0,
+    "net_income_prev": -31995418732.0,
+    "revenue": 102558831015.0,
+    "revenue_prev": 89701005500.0,
+    "eps": 509.0,
+    "roe": 7.272561906649695,
+    "pbr": null,
+    "per": 1.9390962671905698,
+    "debt_ratio": 55.097237054515055,
+    "disclosure_warning": false,
+    "period": "2025_11011",
+    "corp_name": "앤씨앤"
   },
   "129890": {
     "total_assets": 103765097070.0,

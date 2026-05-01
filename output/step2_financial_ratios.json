@@ -17107,16 +17107,17 @@
   "013000": {
     "eps": null,
     "per": null,
-    "pbr": null,
+    "pbr": 0.66,
     "roe": null,
     "eps_growth": null,
-    "revenue_growth": null,
-    "debt_ratio": null,
-    "period": null,
+    "revenue_growth": -8.91,
+    "debt_ratio": 8.42,
+    "period": "2025_11011",
     "corp_name": "세우글로벌",
-    "disclosure_warning": true,
+    "disclosure_warning": false,
     "missing_fields": [
-      "DART 공시 데이터 없음"
+      "eps(순이익/발행주식수 모두 없음)",
+      "roe(순이익 없음)"
     ]
   },
   "100700": {
@@ -19666,18 +19667,19 @@
     "missing_fields": []
   },
   "013990": {
-    "eps": null,
-    "per": null,
+    "eps": 417.0,
+    "per": 12.61,
     "pbr": null,
     "roe": null,
-    "eps_growth": null,
-    "revenue_growth": null,
+    "eps_growth": 13.62,
+    "revenue_growth": 3.47,
     "debt_ratio": null,
-    "period": null,
+    "period": "2025_11011",
     "corp_name": "아가방컴퍼니",
-    "disclosure_warning": true,
+    "disclosure_warning": false,
     "missing_fields": [
-      "DART 공시 데이터 없음"
+      "pbr(자본총계 없음)",
+      "부채비율(부채총계 없음)"
     ]
   },
   "123860": {
@@ -20111,18 +20113,18 @@
     ]
   },
   "227610": {
-    "eps": null,
+    "eps": -99.0,
     "per": null,
-    "pbr": null,
-    "roe": null,
-    "eps_growth": null,
-    "revenue_growth": null,
-    "debt_ratio": null,
-    "period": null,
+    "pbr": 1.64,
+    "roe": -19.8,
+    "eps_growth": 50.5,
+    "revenue_growth": 22.2,
+    "debt_ratio": 214.83,
+    "period": "2025_11011",
     "corp_name": "아우딘퓨쳐스",
-    "disclosure_warning": true,
+    "disclosure_warning": false,
     "missing_fields": [
-      "DART 공시 데이터 없음"
+      "per(EPS 음수—적자기업)"
     ]
   },
   "331740": {
@@ -21552,19 +21554,17 @@
     "missing_fields": []
   },
   "092600": {
-    "eps": null,
-    "per": null,
-    "pbr": null,
-    "roe": null,
-    "eps_growth": null,
-    "revenue_growth": null,
-    "debt_ratio": null,
-    "period": null,
+    "eps": 509.0,
+    "per": 1.94,
+    "pbr": 0.63,
+    "roe": 7.27,
+    "eps_growth": 166.71,
+    "revenue_growth": 14.33,
+    "debt_ratio": 55.1,
+    "period": "2025_11011",
     "corp_name": "앤씨앤",
-    "disclosure_warning": true,
-    "missing_fields": [
-      "DART 공시 데이터 없음"
-    ]
+    "disclosure_warning": false,
+    "missing_fields": []
   },
   "129890": {
     "eps": 141.0,
