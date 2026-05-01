@@ -2252,9 +2252,12 @@ _news_path = OUTPUT_DIR / "step1_news_raw.json"
 _NP_DIR = BASE_DIR / ".claude/skills/news-preprocessor/scripts"
 _NEWS_PIPELINE = [
     (BASE_DIR / ".claude/skills/data-collector/scripts/fetch_news.py",  "뉴스 수집"),
-    (_NP_DIR / "score_sentiment.py",      "감성 분석"),
-    (_NP_DIR / "extract_themes.py",       "테마 추출"),
-    (_NP_DIR / "build_sector_scorecard.py", "섹터 점수 산출"),
+    (_NP_DIR / "deduplicate.py",           "중복 제거"),
+    (_NP_DIR / "extract_sentences.py",     "핵심 문장 추출"),
+    (_NP_DIR / "score_sentiment.py",       "감성 분석"),
+    (_NP_DIR / "build_llm_input.py",       "섹터 태깅 & 뉴스 저장"),
+    (_NP_DIR / "extract_themes.py",        "테마 추출"),
+    (_NP_DIR / "build_sector_scorecard.py","섹터 점수 산출"),
 ]
 _nc1, _nc2 = st.columns([3, 1])
 with _nc2:

@@ -100,9 +100,14 @@ def main():
 
     out_path = OUTPUT_DIR / "step2_llm_input.json"
     out_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # 대시보드 "섹터별 상세분석 & 뉴스" 섹션이 읽는 파일도 동시 갱신
+    pre_path = OUTPUT_DIR / "step2_news_preprocessed.json"
+    pre_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+
     tagged_sectors = len(output)
     tagged_articles = sum(len(v["articles"]) for v in output.values())
-    print(f"[build_llm_input] {tagged_sectors}개 섹터, {tagged_articles}건 태깅 완료 → {out_path}")
+    print(f"[build_llm_input] {tagged_sectors}개 섹터, {tagged_articles}건 태깅 완료 → {out_path}, {pre_path.name}")
 
 
 if __name__ == "__main__":
