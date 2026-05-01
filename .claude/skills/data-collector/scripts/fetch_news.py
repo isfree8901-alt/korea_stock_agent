@@ -8,6 +8,7 @@ import json
 import os
 import sys
 from datetime import datetime
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 import feedparser
@@ -23,9 +24,13 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 WARN_LOG = OUTPUT_DIR / "pipeline_warn.log"
 
 RSS_SOURCES = {
-    "yonhap_info": "https://news.einfomax.co.kr/rss/allArticle.xml",
+    "yonhap_info":  "https://news.einfomax.co.kr/rss/allArticle.xml",
     "investing_kr": "https://kr.investing.com/rss/news.rss",
-    "newsis_eco":  "https://newsis.com/RSS/economy.xml",
+    "newsis_eco":   "https://newsis.com/RSS/economy.xml",
+    "hankyung":     "https://www.hankyung.com/feed/economy",
+    "maeil_eco":    "https://www.mk.co.kr/rss/30100041/",
+    "yonhap_eco":   "https://www.yna.co.kr/rss/economy.xml",
+    "edaily":       "https://www.edaily.co.kr/rss/RssSection.xml?pt_nm=Economy",
 }
 
 HEADERS = {
@@ -53,6 +58,22 @@ def log_warn(msg: str) -> None:
     print(f"WARN: {msg}", file=sys.stderr)
 
 
+def _normalize_date(raw: str) -> str:
+    """RFC-2822 / ISO / 기타 형식을 ISO 8601(YYYY-MM-DD HH:MM:SS)로 통일."""
+    if not raw:
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        return parsedate_to_datetime(raw).strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        pass
+    for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(raw[:19], fmt).strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            pass
+    return raw
+
+
 def fetch_rss_feed(url: str, source_name: str) -> list[dict]:
     try:
         resp = requests.get(url, headers=HEADERS, timeout=15)
@@ -62,13 +83,13 @@ def fetch_rss_feed(url: str, source_name: str) -> list[dict]:
         for entry in feed.entries:
             title = entry.get("title", "").strip()
             content = entry.get("summary", entry.get("description", "")).strip()
-            pub_date = entry.get("published", entry.get("updated", ""))
+            raw_date = entry.get("published", entry.get("updated", ""))
             link = entry.get("link", "")
             if title:
                 articles.append({
                     "title": title,
                     "content": content,
-                    "pub_date": pub_date,
+                    "pub_date": _normalize_date(raw_date),
                     "source": source_name,
                     "url": link,
                 })

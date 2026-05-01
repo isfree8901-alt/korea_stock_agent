@@ -382,6 +382,7 @@ with st.sidebar:
         '<a href="#top10">📊 섹터별 시총 Top10</a><br>'
         '<a href="#ratios">💹 재무비율 분석</a><br>'
         '<a href="#quant">🔬 퀀트 소형주 스크리너</a><br>'
+        '<a href="#news">📰 뉴스 검색</a><br>'
         '<a href="#trade-note">📒 트레이드 노트</a><br>'
         '<a href="#ai-power">⚡ AI 전력 인프라</a><br>'
         '<a href="#disclosure">⚠️ 공시 경고</a><br>'
@@ -1957,7 +1958,150 @@ if _sq and market_data_raw:
         st.info("일치하는 종목이 없습니다.")
     st.divider()
 
-# ─── SECTION 7: 트레이드 노트 ─────────────────────────────────────────────────
+# ─── SECTION 7: 뉴스 검색 ─────────────────────────────────────────────────────
+
+st.markdown('<a id="news"></a>', unsafe_allow_html=True)
+st.header("📰 뉴스 검색")
+
+_news_path = OUTPUT_DIR / "step1_news_raw.json"
+
+# 새로고침 버튼 ── subprocess로 fetch_news.py 직접 실행
+_FETCH_SCRIPT = BASE_DIR / ".claude/skills/data-collector/scripts/fetch_news.py"
+_nc1, _nc2 = st.columns([3, 1])
+with _nc2:
+    if st.button("🔄 뉴스 새로고침", use_container_width=True, key="news_refresh_btn"):
+        import subprocess as _sp
+        with st.spinner("뉴스 수집 중…"):
+            _result = _sp.run(
+                [sys.executable, str(_FETCH_SCRIPT)],
+                capture_output=True, text=True, timeout=120
+            )
+        if _result.returncode == 0:
+            st.success("뉴스 업데이트 완료")
+            st.rerun()
+        else:
+            st.error(f"수집 실패: {_result.stderr[-300:]}")
+
+# 뉴스 로드
+_raw_articles: list[dict] = []
+if _news_path.exists():
+    try:
+        _raw_articles = json.loads(_news_path.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+
+with _nc1:
+    if _raw_articles:
+        _last_pub = max((a.get("pub_date","") for a in _raw_articles), default="—")
+        st.caption(f"총 {len(_raw_articles)}건 · 최신 기사: {_last_pub[:16]}")
+    else:
+        st.caption("뉴스 데이터 없음 — 새로고침을 눌러 수집하세요.")
+
+if _raw_articles:
+    # 검색 + 소스 필터
+    _nf1, _nf2, _nf3 = st.columns([3, 2, 1])
+    with _nf1:
+        _news_kw = st.text_input("키워드 검색", placeholder="예: 반도체, 금리, 환율",
+                                  key="news_kw", label_visibility="collapsed")
+    _source_map = {
+        "yonhap_info": "연합인포맥스", "investing_kr": "인베스팅",
+        "newsis_eco": "뉴시스", "hankyung": "한국경제",
+        "maeil_eco": "매일경제", "yonhap_eco": "연합뉴스",
+        "edaily": "이데일리",
+    }
+    _all_sources = sorted({a.get("source","") for a in _raw_articles if a.get("source")})
+    with _nf2:
+        _sel_sources = st.multiselect(
+            "소스 필터", options=_all_sources,
+            format_func=lambda x: _source_map.get(x, x),
+            default=[], key="news_src_filter", label_visibility="collapsed",
+            placeholder="전체 소스"
+        )
+    with _nf3:
+        _news_days = st.selectbox("기간", ["오늘", "2일", "전체"], index=0,
+                                   key="news_days_filter", label_visibility="collapsed")
+
+    # 필터 적용
+    from datetime import timedelta as _td
+    _today = datetime.now().date()
+    _cutoff = {
+        "오늘": _today,
+        "2일":  _today - _td(days=1),
+        "전체": None,
+    }[_news_days]
+
+    _filtered = []
+    for _art in _raw_articles:
+        # 날짜 필터
+        if _cutoff:
+            try:
+                _art_date = datetime.strptime(_art.get("pub_date","")[:10], "%Y-%m-%d").date()
+                if _art_date < _cutoff:
+                    continue
+            except Exception:
+                pass
+        # 소스 필터
+        if _sel_sources and _art.get("source","") not in _sel_sources:
+            continue
+        # 키워드 필터
+        if _news_kw:
+            _kw_lower = _news_kw.lower()
+            _haystack = (_art.get("title","") + " " + _art.get("content","")).lower()
+            if _kw_lower not in _haystack:
+                continue
+        _filtered.append(_art)
+
+    # 정렬: 최신순
+    _filtered.sort(key=lambda x: x.get("pub_date",""), reverse=True)
+
+    st.caption(f"{len(_filtered)}건 표시 중" + (f"  ·  키워드: **{_news_kw}**" if _news_kw else ""))
+
+    # 기사 목록
+    if not _filtered:
+        st.info("조건에 맞는 기사가 없습니다.")
+    else:
+        # 페이지네이션
+        _PAGE = 20
+        _total_pages = max(1, (len(_filtered) + _PAGE - 1) // _PAGE)
+        _page_idx = st.number_input("페이지", min_value=1, max_value=_total_pages,
+                                     value=1, step=1, key="news_page") - 1
+        _page_arts = _filtered[_page_idx * _PAGE : (_page_idx + 1) * _PAGE]
+
+        for _art in _page_arts:
+            _src_label = _source_map.get(_art.get("source",""), _art.get("source",""))
+            _pub = _art.get("pub_date","")[:16]
+            _title = _art.get("title","(제목 없음)")
+            _content = _art.get("content","").strip()
+            _url = _art.get("url","")
+
+            # 키워드 하이라이트 (HTML)
+            def _hl(text: str, kw: str) -> str:
+                if not kw or not text:
+                    return text
+                import re as _re
+                return _re.sub(f"({_re.escape(kw)})",
+                               r'<mark style="background:#fef08a">\1</mark>',
+                               text, flags=_re.IGNORECASE)
+
+            _title_hl = _hl(_title, _news_kw)
+            _excerpt = _content[:200] + ("…" if len(_content) > 200 else "")
+            _excerpt_hl = _hl(_excerpt, _news_kw)
+
+            with st.expander(f"[{_src_label}] {_title} — {_pub}", expanded=False):
+                st.markdown(
+                    f'<div style="font-size:14px;line-height:1.6">'
+                    f'<b>{_title_hl}</b><br>'
+                    f'<span style="color:#6b7280;font-size:12px">{_src_label} · {_pub}</span><br><br>'
+                    f'{_excerpt_hl}'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+                if _url:
+                    st.markdown(f"[원문 보기 →]({_url})")
+
+st.divider()
+
+# ─── SECTION 8: 트레이드 노트 ─────────────────────────────────────────────────
 
 st.markdown('<a id="trade-note"></a>', unsafe_allow_html=True)
 st.header("📒 트레이드 노트")
