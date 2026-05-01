@@ -1246,25 +1246,73 @@ else:
         with _w_exp_col2:
             with st.expander("✏️ 편집 / 삭제", expanded=True):
                 if _we_item:
-                    with st.form(f"wl_edit_{_ws['_ticker']}"):
-                        _e_target = st.number_input("목표가(원)",
-                                                     value=int(_we_item.get("target_price") or 0),
-                                                     min_value=0, step=100)
-                        _e_group  = st.text_input("그룹", value=_we_item.get("group",""))
-                        _e_note   = st.text_input("메모", value=_we_item.get("note",""))
-                        _ef1, _ef2 = st.columns(2)
-                        if _ef1.form_submit_button("💾 저장", use_container_width=True):
-                            for _wi in _wl_items:
-                                if _wi["ticker"] == _ws["_ticker"]:
-                                    _wi["target_price"] = int(_e_target)
-                                    _wi["group"]  = _e_group.strip()
-                                    _wi["note"]   = _e_note.strip()
-                                    break
-                            _save_watchlist(_wl_items)
-                            st.rerun()
-                        if _ef2.form_submit_button("🗑️ 삭제", use_container_width=True):
-                            _wl_remove(_ws["_ticker"])
-                            st.rerun()
+                    _cur_price = int(_ws["_close"] or 0)
+                    _tp_key = f"wl_ni_{_ws['_ticker']}"
+
+                    # 세션 초기화 (종목 전환 시 저장값으로 리셋)
+                    _saved_tp = int(_we_item.get("target_price") or 0)
+                    if _tp_key not in st.session_state:
+                        st.session_state[_tp_key] = _saved_tp
+
+                    # 현재가 표시
+                    if _cur_price:
+                        st.caption(f"현재가 **₩{_cur_price:,}**")
+
+                    # % 프리셋 버튼 (2행 × 3열)
+                    st.caption("현재가 대비 목표가 설정")
+                    _pct_rows = [[5, 10, 15], [20, 25, 30]]
+                    for _pr in _pct_rows:
+                        _pr_cols = st.columns(3)
+                        for _ci, _pct in enumerate(_pr):
+                            with _pr_cols[_ci]:
+                                _calc = int(_cur_price * (1 + _pct / 100)) if _cur_price else 0
+                                if st.button(
+                                    f"+{_pct}%\n₩{_calc:,}" if _calc else f"+{_pct}%",
+                                    key=f"wl_pct_{_ws['_ticker']}_{_pct}",
+                                    use_container_width=True,
+                                ):
+                                    st.session_state[_tp_key] = _calc
+                                    st.rerun()
+
+                    # 직접 입력 (session_state와 연동)
+                    st.caption("또는 직접 입력")
+                    _e_target = st.number_input(
+                        "목표가(원)", min_value=0, step=100,
+                        key=_tp_key, label_visibility="collapsed",
+                    )
+
+                    # 괴리율 실시간 표시
+                    if _cur_price and _e_target:
+                        _gap_pct = (_e_target / _cur_price - 1) * 100
+                        _gap_color = "#16a34a" if _gap_pct >= 0 else "#dc2626"
+                        st.markdown(
+                            f'<div style="text-align:center;font-size:13px;'
+                            f'color:{_gap_color};font-weight:600;margin:4px 0">'
+                            f'목표까지 {_gap_pct:+.1f}% &nbsp;·&nbsp; ₩{int(_e_target):,}</div>',
+                            unsafe_allow_html=True,
+                        )
+
+                    _e_group = st.text_input("그룹", value=_we_item.get("group",""),
+                                              key=f"wl_grp_{_ws['_ticker']}")
+                    _e_note  = st.text_input("메모", value=_we_item.get("note",""),
+                                              key=f"wl_note_{_ws['_ticker']}")
+
+                    _ef1, _ef2 = st.columns(2)
+                    if _ef1.button("💾 저장", key=f"wl_save_{_ws['_ticker']}",
+                                   use_container_width=True):
+                        for _wi in _wl_items:
+                            if _wi["ticker"] == _ws["_ticker"]:
+                                _wi["target_price"] = int(_e_target)
+                                _wi["group"]  = _e_group.strip()
+                                _wi["note"]   = _e_note.strip()
+                                break
+                        _save_watchlist(_wl_items)
+                        del st.session_state[_tp_key]
+                        st.rerun()
+                    if _ef2.button("🗑️ 삭제", key=f"wl_del_{_ws['_ticker']}",
+                                   use_container_width=True):
+                        _wl_remove(_ws["_ticker"])
+                        st.rerun()
 
 st.divider()
 
