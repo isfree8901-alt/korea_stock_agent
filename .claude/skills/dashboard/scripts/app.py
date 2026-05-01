@@ -1965,22 +1965,33 @@ st.header("📰 뉴스 검색")
 
 _news_path = OUTPUT_DIR / "step1_news_raw.json"
 
-# 새로고침 버튼 ── subprocess로 fetch_news.py 직접 실행
-_FETCH_SCRIPT = BASE_DIR / ".claude/skills/data-collector/scripts/fetch_news.py"
+# 새로고침 버튼 ── fetch_news → score_sentiment → extract_themes → build_sector_scorecard 순 실행
+_NP_DIR = BASE_DIR / ".claude/skills/news-preprocessor/scripts"
+_NEWS_PIPELINE = [
+    (BASE_DIR / ".claude/skills/data-collector/scripts/fetch_news.py",  "뉴스 수집"),
+    (_NP_DIR / "score_sentiment.py",      "감성 분석"),
+    (_NP_DIR / "extract_themes.py",       "테마 추출"),
+    (_NP_DIR / "build_sector_scorecard.py", "섹터 점수 산출"),
+]
 _nc1, _nc2 = st.columns([3, 1])
 with _nc2:
-    if st.button("🔄 뉴스 새로고침", use_container_width=True, key="news_refresh_btn"):
+    if st.button("🔄 뉴스 + 섹터 갱신", use_container_width=True, key="news_refresh_btn"):
         import subprocess as _sp
-        with st.spinner("뉴스 수집 중…"):
-            _result = _sp.run(
-                [sys.executable, str(_FETCH_SCRIPT)],
-                capture_output=True, text=True, timeout=120
-            )
-        if _result.returncode == 0:
-            st.success("뉴스 업데이트 완료")
-            st.rerun()
+        _errors = []
+        _progress = st.progress(0, text="시작 중…")
+        for _pi, (_script, _label) in enumerate(_NEWS_PIPELINE):
+            _progress.progress((_pi) / len(_NEWS_PIPELINE), text=f"{_label} 중…")
+            _r = _sp.run([sys.executable, str(_script)],
+                         capture_output=True, text=True, timeout=180,
+                         cwd=str(BASE_DIR))
+            if _r.returncode != 0:
+                _errors.append(f"{_label}: {_r.stderr[-200:]}")
+        _progress.progress(1.0, text="완료")
+        if _errors:
+            st.error("일부 실패:\n" + "\n".join(_errors))
         else:
-            st.error(f"수집 실패: {_result.stderr[-300:]}")
+            st.success("뉴스 + 섹터 점수 업데이트 완료 — 페이지를 새로고침하면 반영됩니다.")
+            st.rerun()
 
 # 뉴스 로드
 _raw_articles: list[dict] = []
