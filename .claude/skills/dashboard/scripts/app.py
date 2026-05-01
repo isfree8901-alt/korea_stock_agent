@@ -15,8 +15,10 @@ if _here not in sys.path:
     sys.path.insert(0, _here)
 
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 from dotenv import load_dotenv
 from generate_scorecard import generate_scorecard
@@ -971,54 +973,161 @@ def _build_stock_rows(tickers: list[str]) -> list[dict]:
         rows = enrich_price_changes(rows, market_data_raw)
     return rows
 
-def _render_stock_chart(ticker: str, name: str, days: int = 60) -> None:
-    """캔들스틱 차트. data/historical CSV → pykrx 순으로 시도."""
+def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
+    """캔들스틱 + 이동평균선 + 추세선(저항·지지). historical CSV → pykrx fallback."""
     from datetime import timedelta
+
+    # ── 1. 최대 2년치 로드 ─────────────────────────────────────────────────
+    _MAX_LOAD = 520
     hist_path = BASE_DIR / "data" / "historical" / f"{ticker}.csv"
-    df_c = None
+    df_full = None
     if hist_path.exists():
         try:
-            df_c = pd.read_csv(hist_path, parse_dates=["Date"])
-            df_c = df_c.sort_values("Date").tail(days).reset_index(drop=True)
+            df_full = pd.read_csv(hist_path, parse_dates=["Date"])
+            df_full = df_full.sort_values("Date").tail(_MAX_LOAD).reset_index(drop=True)
         except Exception:
-            df_c = None
-    if df_c is None or df_c.empty:
+            df_full = None
+    if df_full is None or df_full.empty:
         try:
             from pykrx import stock as _ks
             _end = datetime.now()
-            _start = _end - timedelta(days=days + 25)
+            _start = _end - timedelta(days=_MAX_LOAD + 60)
             _raw = _ks.get_market_ohlcv_by_date(_start.strftime("%Y%m%d"), _end.strftime("%Y%m%d"), ticker)
             if _raw is not None and not _raw.empty:
                 _raw = _raw.reset_index()
                 _raw.columns = ["Date" if c == "날짜" else c for c in _raw.columns]
                 _raw = _raw.rename(columns={"시가": "Open", "고가": "High", "저가": "Low", "종가": "Close", "거래량": "Volume"})
-                df_c = _raw[["Date"] + [c for c in ["Open","High","Low","Close","Volume"] if c in _raw.columns]].tail(days)
+                df_full = _raw[["Date"] + [c for c in ["Open","High","Low","Close","Volume"] if c in _raw.columns]]
         except Exception:
-            df_c = None
-    if df_c is None or df_c.empty:
+            df_full = None
+    if df_full is None or df_full.empty:
         st.warning(f"{name}({ticker}) 차트 데이터를 불러올 수 없습니다.")
         return
-    has_ohlc = all(c in df_c.columns for c in ["Open", "High", "Low", "Close"])
-    fig = go.Figure()
+
+    # ── 2. 기간 / MA / 추세선 컨트롤 ─────────────────────────────────────────
+    _c1, _c2, _c3 = st.columns([2, 4, 2])
+    with _c1:
+        _period = st.radio("기간", ["6개월", "1년", "2년"],
+                           index=1, horizontal=True, key=f"cp_{ticker}")
+    with _c2:
+        _ma_sel = st.multiselect("이동평균선",
+                                 ["5일", "20일", "60일", "120일"],
+                                 default=["20일", "60일"],
+                                 key=f"ma_{ticker}")
+    with _c3:
+        _show_trend = st.checkbox("저항선·지지선", value=True, key=f"tr_{ticker}")
+
+    _n = {"6개월": 126, "1년": 252, "2년": 504}[_period]
+    df = df_full.tail(_n).reset_index(drop=True)
+    has_ohlc = all(c in df.columns for c in ["Open", "High", "Low", "Close"])
+
+    # ── 3. Figure (가격 + 거래량 서브플롯) ─────────────────────────────────────
+    has_vol = "Volume" in df.columns
+    fig = make_subplots(
+        rows=2 if has_vol else 1, cols=1, shared_xaxes=True,
+        row_heights=[0.75, 0.25] if has_vol else [1.0],
+        vertical_spacing=0.03,
+    )
+
+    # ── 4. 캔들스틱 ──────────────────────────────────────────────────────────
     if has_ohlc:
         fig.add_trace(go.Candlestick(
-            x=df_c["Date"], open=df_c["Open"], high=df_c["High"],
-            low=df_c["Low"], close=df_c["Close"], name=name,
+            x=df["Date"], open=df["Open"], high=df["High"],
+            low=df["Low"], close=df["Close"], name=name,
             increasing_line_color="#15803d", decreasing_line_color="#b91c1c",
-        ))
+            increasing_fillcolor="#15803d", decreasing_fillcolor="#b91c1c",
+        ), row=1, col=1)
     else:
-        fig.add_trace(go.Scatter(x=df_c["Date"], y=df_c["Close"], mode="lines", name=name,
-                                 line=dict(color="#1e40af", width=2)))
-    if "Volume" in df_c.columns:
-        fig.add_trace(go.Bar(x=df_c["Date"], y=df_c["Volume"], name="거래량",
-                             yaxis="y2", marker_color="rgba(120,120,220,0.25)"))
-        fig.update_layout(yaxis2=dict(overlaying="y", side="right", showgrid=False,
-                                      title="거래량", tickformat=".2s"))
+        fig.add_trace(go.Scatter(x=df["Date"], y=df["Close"], mode="lines", name=name,
+                                 line=dict(color="#1e40af", width=2)), row=1, col=1)
+
+    # ── 5. 이동평균선 ─────────────────────────────────────────────────────────
+    _ma_color = {"5일": "#f59e0b", "20일": "#3b82f6", "60일": "#8b5cf6", "120일": "#ef4444"}
+    _ma_days  = {"5일": 5, "20일": 20, "60일": 60, "120일": 120}
+    for _m in _ma_sel:
+        _p = _ma_days[_m]
+        # MA를 df_full 전체로 계산 후 플롯 구간만 tail
+        _ma_vals = df_full["Close"].rolling(_p).mean().tail(_n).values
+        fig.add_trace(go.Scatter(
+            x=df["Date"], y=_ma_vals, mode="lines", name=f"MA{_p}",
+            line=dict(color=_ma_color[_m], width=1.5),
+        ), row=1, col=1)
+
+    # ── 6. 추세선 (피벗 고점·저점 기반) ──────────────────────────────────────
+    if _show_trend and has_ohlc and len(df) >= 30:
+        _highs = df["High"].values.astype(float)
+        _lows  = df["Low"].values.astype(float)
+        _idx   = np.arange(len(df))
+        _win   = max(7, len(df) // 25)  # 데이터 길이에 비례한 윈도우
+
+        _h_ser = pd.Series(_highs)
+        _l_ser = pd.Series(_lows)
+
+        # 피벗 고점: 좌우 _win 봉 중 최고가인 지점
+        _peak_mask   = (_h_ser == _h_ser.rolling(_win * 2 + 1, center=True).max())
+        # 피벗 저점: 좌우 _win 봉 중 최저가인 지점
+        _trough_mask = (_l_ser == _l_ser.rolling(_win * 2 + 1, center=True).min())
+
+        _peak_idx   = _idx[_peak_mask.values]
+        _trough_idx = _idx[_trough_mask.values]
+
+        def _draw_trendline(x_pts, y_pts, label, color, dash="dot"):
+            """두 점 이상으로 선형회귀 추세선 → 차트 전체로 연장."""
+            if len(x_pts) < 2:
+                return
+            _coef = np.polyfit(x_pts, y_pts, 1)
+            _y0 = np.polyval(_coef, 0)
+            _y1 = np.polyval(_coef, _idx[-1])
+            fig.add_trace(go.Scatter(
+                x=[df["Date"].iloc[0], df["Date"].iloc[-1]],
+                y=[float(_y0), float(_y1)],
+                mode="lines", name=label,
+                line=dict(color=color, width=1.8, dash=dash),
+            ), row=1, col=1)
+
+        # 저항선: 최근 피벗 고점 중 상위 5개 → 회귀선
+        if len(_peak_idx) >= 2:
+            _top_peaks = sorted(_peak_idx, key=lambda i: _highs[i], reverse=True)[:5]
+            _top_peaks = sorted(_top_peaks)  # 시간 순 재정렬
+            _slope_sign = np.polyfit(np.array(_top_peaks), _highs[_top_peaks], 1)[0]
+            _lbl   = "하락저항선" if _slope_sign < 0 else "상승저항선"
+            _color = "#ef4444" if _slope_sign < 0 else "#f97316"
+            _draw_trendline(np.array(_top_peaks), _highs[_top_peaks], _lbl, _color)
+
+        # 지지선: 최근 피벗 저점 중 하위 5개 → 회귀선
+        if len(_trough_idx) >= 2:
+            _bot_troughs = sorted(_trough_idx, key=lambda i: _lows[i])[:5]
+            _bot_troughs = sorted(_bot_troughs)
+            _slope_sign = np.polyfit(np.array(_bot_troughs), _lows[_bot_troughs], 1)[0]
+            _lbl   = "상승지지선" if _slope_sign > 0 else "하락지지선"
+            _color = "#22c55e" if _slope_sign > 0 else "#06b6d4"
+            _draw_trendline(np.array(_bot_troughs), _lows[_bot_troughs], _lbl, _color)
+
+    # ── 7. 거래량 ─────────────────────────────────────────────────────────────
+    if has_vol:
+        _vol_c = [
+            "#15803d" if (has_ohlc and df["Close"].iloc[i] >= df["Open"].iloc[i]) else "#b91c1c"
+            for i in range(len(df))
+        ]
+        fig.add_trace(go.Bar(
+            x=df["Date"], y=df["Volume"], name="거래량",
+            marker_color=_vol_c, showlegend=False,
+        ), row=2, col=1)
+        fig.update_yaxes(title_text="거래량", tickformat=".2s", row=2, col=1)
+
+    # ── 8. 레이아웃 ───────────────────────────────────────────────────────────
     fig.update_layout(
-        title=f"{name} ({ticker}) — 최근 {len(df_c)}거래일",
+        title=f"{name} ({ticker})",
         xaxis_rangeslider_visible=False,
-        height=420, margin=dict(l=10, r=10, t=40, b=20),
+        height=580,
+        margin=dict(l=10, r=10, t=45, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+                    font=dict(size=11)),
+        paper_bgcolor="white",
+        plot_bgcolor="#fafafa",
     )
+    fig.update_xaxes(showgrid=True, gridcolor="#e5e7eb", gridwidth=1)
+    fig.update_yaxes(showgrid=True, gridcolor="#e5e7eb", gridwidth=1, row=1, col=1)
     st.plotly_chart(fig, use_container_width=True)
 
 def _apply_chg_style(styles, col_names, col, raw_val):
