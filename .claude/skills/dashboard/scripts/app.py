@@ -625,76 +625,7 @@ with st.expander("📊 자산배분 현황 (권고: 주식 35% · 현금 50% · 
             _col.metric(_label, f"{_cur}%", _diff_str,
                         delta_color="inverse" if _label == "주식" and not _is_offensive else "normal")
 
-# ─── 종목 검색 결과 ────────────────────────────────────────────────────────────
-
-_sq = (st.session_state.get("stock_search_query") or "").strip()
-if _sq and market_data_raw:
-    _matches = [
-        (tkr, info)
-        for tkr, info in market_data_raw.items()
-        if _sq.lower() in info.get("name", "").lower() or _sq in tkr
-    ]
-    st.subheader(f"🔍 '{_sq}' 검색 결과 ({len(_matches)}건)")
-    if _matches:
-        # Build rank/sector lookup from rankings_data
-        _rank_map: dict[str, tuple[str, int]] = {}
-        for _sec, _sv in rankings_data.items():
-            for _it in _sv.get("top10", []):
-                _rank_map[_it["ticker"]] = (_sec, _it["rank"])
-
-        for tkr, info in _matches[:20]:
-            name       = info.get("name", tkr)
-            sector_kr  = info.get("sector", "-")
-            cap_억     = info.get("market_cap", 0) // 100_000_000
-            close      = info.get("close", 0)
-            chg        = info.get("change_rate", 0)
-            chg_icon   = "🔺" if chg > 0 else ("🔻" if chg < 0 else "➖")
-            r          = ratios_data.get(tkr, {})
-            sec_rank   = _rank_map.get(tkr)
-
-            with st.expander(
-                f"**{name}** `{tkr}` — {sector_kr}  |  {cap_억:,}억  {chg_icon} {chg:+.2f}%"
-                + (f"  |  섹터Top10 **{sec_rank[1]}위** ({sec_rank[0]})" if sec_rank else ""),
-                expanded=False,
-            ):
-                c1, c2, c3, c4, c5, c6 = st.columns(6)
-                c1.metric("PER", f"{r['per']:.1f}"       if r.get("per")            else "N/A")
-                c2.metric("PBR", f"{r['pbr']:.2f}"       if r.get("pbr")            else "N/A")
-                c3.metric("ROE", f"{r['roe']:.1f}%"      if r.get("roe") is not None else "N/A")
-                c4.metric("EPS", f"{r['eps']:,.0f}"      if r.get("eps") is not None else "N/A")
-                c5.metric("부채비율", f"{r['debt_ratio']:.1f}%" if r.get("debt_ratio") else "N/A")
-                c6.metric("매출성장", f"{r['revenue_growth']:.1f}%" if r.get("revenue_growth") is not None else "N/A")
-                if r.get("missing_fields"):
-                    st.caption("⚠️ " + " · ".join(r["missing_fields"]))
-
-                # 트레이드 노트 즉시 추가
-                _qn_key = f"quick_note_open_{tkr}"
-                if st.button("📒 트레이드 노트에 추가", key=f"qn_btn_{tkr}", use_container_width=True):
-                    st.session_state[_qn_key] = not st.session_state.get(_qn_key, False)
-                if st.session_state.get(_qn_key):
-                    _existing_notes = _load_notes_smart()
-                    if name in _existing_notes and _existing_notes[name].get("status") == "보유중":
-                        st.warning(f"'{name}'은 이미 트레이드 노트에 보유 중입니다.")
-                    else:
-                        with st.form(f"quick_note_form_{tkr}", clear_on_submit=True):
-                            _qn1, _qn2, _qn3 = st.columns(3)
-                            _qn_price = _qn1.number_input("매수가(원)", value=int(close or 0), min_value=1, step=100)
-                            _qn_qty   = _qn2.number_input("수량(주)", value=1, min_value=1)
-                            _qn_date  = _qn3.date_input("매수일", value=date.today())
-                            _qn_memo  = st.text_input("메모", placeholder="매수 이유...")
-                            if st.form_submit_button("💾 저장", use_container_width=True):
-                                _existing_notes[name] = {
-                                    "ticker": tkr, "buy_price": int(_qn_price),
-                                    "quantity": int(_qn_qty), "buy_date": _qn_date.isoformat(),
-                                    "note": _qn_memo.strip(), "peak_price": int(_qn_price),
-                                    "status": "보유중",
-                                }
-                                _save_notes_smart(_existing_notes)
-                                st.session_state[_qn_key] = False
-                                st.success(f"✅ {name} 트레이드 노트에 추가됨!")
-                                st.rerun()
-    else:
-        st.info("일치하는 종목이 없습니다.")
+# ─── 종목 검색 결과는 퀀트 소형주 스크리너 섹션 아래에 표시됩니다 ──────────────────
     st.divider()
 
 # ─── 알림 배너 ───────────────────────────────────────────────────────────────
@@ -1452,6 +1383,100 @@ EPS 2,000원 = "주식 1주당 연간 순이익 2,000원"
 
 st.divider()
 
+# ─── 공통 테이블 렌더링 헬퍼 (검색·AI 전력 인프라 섹션 공용) ──────────────────────
+
+def _qf_n(v, d=1):
+    if v is None or (isinstance(v, float) and v != v): return "-"
+    r = round(float(v), d)
+    return str(int(r)) if r == int(r) else str(r)
+
+def _chg_fmt_n(v) -> str:
+    if v is None or (isinstance(v, float) and v != v): return "-"
+    return f"{float(v):+.2f}%"
+
+def _build_stock_rows(tickers: list[str]) -> list[dict]:
+    rows = []
+    for tk in tickers:
+        if not market_data_raw:
+            break
+        mkt = market_data_raw.get(tk, {})
+        r   = (ratios_data or {}).get(tk, {})
+        rows.append({
+            "name":           mkt.get("name", tk),
+            "ticker":         tk,
+            "sector":         mkt.get("sector", "-"),
+            "market_cap_억":  mkt.get("market_cap", 0) // 100_000_000,
+            "close":          mkt.get("close", 0),
+            "chg_1d":         mkt.get("change_rate"),
+            "chg_7d":         None,
+            "chg_15d":        None,
+            "chg_30d":        None,
+            "per":            r.get("per"),
+            "pbr":            r.get("pbr"),
+            "eps_growth":     r.get("eps_growth"),
+            "revenue_growth": r.get("revenue_growth"),
+            "roe":            r.get("roe"),
+        })
+    if rows and market_data_raw:
+        rows = enrich_price_changes(rows, market_data_raw)
+    return rows
+
+def _render_stock_table(rows: list[dict], height: int = 360) -> None:
+    if not rows:
+        st.info("시장 데이터가 없습니다. 파이프라인을 먼저 실행하세요.")
+        return
+    _rdf = pd.DataFrame(rows)
+    _CHG_COLS_N = ["전일(%)", "7일(%)", "15일(%)", "30일(%)"]
+    _chg_raw_n = {
+        "전일(%)":  list(_rdf["chg_1d"]),
+        "7일(%)":   list(_rdf["chg_7d"]),
+        "15일(%)":  list(_rdf["chg_15d"]),
+        "30일(%)":  list(_rdf["chg_30d"]),
+    }
+    _disp = pd.DataFrame({
+        "종목명":      _rdf["name"],
+        "티커":        _rdf["ticker"],
+        "섹터":        _rdf["sector"],
+        "시총(억)":    _rdf["market_cap_억"].apply(lambda x: f"{int(x):,}"),
+        "현재가":      _rdf["close"].apply(lambda x: f"₩{int(x):,}" if x else "-"),
+        "전일(%)":     _rdf["chg_1d"].apply(_chg_fmt_n),
+        "7일(%)":      _rdf["chg_7d"].apply(_chg_fmt_n),
+        "15일(%)":     _rdf["chg_15d"].apply(_chg_fmt_n),
+        "30일(%)":     _rdf["chg_30d"].apply(_chg_fmt_n),
+        "PER":         _rdf["per"].apply(lambda x: _qf_n(x)),
+        "PBR":         _rdf["pbr"].apply(lambda x: _qf_n(x, 2)),
+        "EPS성장(%)":  _rdf["eps_growth"].apply(lambda x: _qf_n(x)),
+        "매출성장(%)": _rdf["revenue_growth"].apply(lambda x: _qf_n(x)),
+        "ROE(%)":      _rdf["roe"].apply(lambda x: _qf_n(x)),
+    })
+
+    def _style_stock(df_row):
+        row_idx   = df_row.name
+        styles    = [""] * len(df_row)
+        col_names = list(df_row.index)
+        for col in _CHG_COLS_N:
+            if col not in col_names:
+                continue
+            ci  = col_names.index(col)
+            val = _chg_raw_n[col][row_idx] if row_idx < len(_chg_raw_n[col]) else None
+            if val is None or (isinstance(val, float) and val != val):
+                continue
+            val = float(val)
+            if   val >=  5.0: styles[ci] = "background-color:#dcfce7;color:#166534;font-weight:bold"
+            elif val >=  2.0: styles[ci] = "background-color:#f0fdf4;color:#15803d"
+            elif val >=  0.0: styles[ci] = "background-color:#f8fff8;color:#166534"
+            elif val >= -2.0: styles[ci] = "background-color:#fff8f8;color:#b91c1c"
+            elif val >= -5.0: styles[ci] = "background-color:#fee2e2;color:#b91c1c"
+            else:             styles[ci] = "background-color:#fecaca;color:#7f1d1d;font-weight:bold"
+        return styles
+
+    st.dataframe(
+        _disp.style.apply(_style_stock, axis=1),
+        use_container_width=True,
+        hide_index=True,
+        height=height,
+    )
+
 # ─── SECTION 6: 퀀트 소형주 스크리너 ──────────────────────────────────────────
 
 st.markdown('<a id="quant"></a>', unsafe_allow_html=True)
@@ -1595,6 +1620,62 @@ else:
     st.info("데이터 없음 — 파이프라인 실행 후 표시됩니다.")
 
 st.divider()
+
+# ─── 종목 검색 결과 (퀀트 스크리너 아래) ─────────────────────────────────────────
+
+_sq = (st.session_state.get("stock_search_query") or "").strip()
+if _sq and market_data_raw:
+    st.markdown('<a id="search-result"></a>', unsafe_allow_html=True)
+    _matches = [
+        (tkr, info)
+        for tkr, info in market_data_raw.items()
+        if _sq.lower() in info.get("name", "").lower() or _sq in tkr
+    ]
+    st.subheader(f"🔍 '{_sq}' 검색 결과 ({len(_matches)}건)")
+    if _matches:
+        _search_tickers = [tkr for tkr, _ in _matches[:20]]
+        with st.spinner("가격 데이터 조회 중..."):
+            _search_rows = _build_stock_rows(_search_tickers)
+        _render_stock_table(_search_rows, height=min(560, max(220, len(_search_tickers) * 38 + 60)))
+
+        # ── 트레이드 노트 빠른 추가 ──────────────────────────────────────────────
+        _rank_map_s: dict[str, tuple[str, int]] = {}
+        for _sec, _sv in rankings_data.items():
+            for _it in _sv.get("top10", []):
+                _rank_map_s[_it["ticker"]] = (_sec, _it["rank"])
+
+        with st.expander("📒 트레이드 노트에 추가"):
+            _sel_name = st.selectbox(
+                "종목 선택",
+                [info.get("name", tkr) for tkr, info in _matches[:20]],
+                key="search_tn_select",
+            )
+            _sel_tkr  = next((tkr for tkr, info in _matches[:20] if info.get("name", tkr) == _sel_name), None)
+            if _sel_tkr:
+                _sel_close = market_data_raw.get(_sel_tkr, {}).get("close", 0)
+                _existing_notes_s = _load_notes_smart()
+                if _sel_name in _existing_notes_s and _existing_notes_s[_sel_name].get("status") == "보유중":
+                    st.warning(f"'{_sel_name}'은 이미 트레이드 노트에 보유 중입니다.")
+                else:
+                    with st.form("search_tn_form", clear_on_submit=True):
+                        _sn1, _sn2, _sn3 = st.columns(3)
+                        _sn_price = _sn1.number_input("매수가(원)", value=int(_sel_close or 0), min_value=1, step=100)
+                        _sn_qty   = _sn2.number_input("수량(주)", value=1, min_value=1)
+                        _sn_date  = _sn3.date_input("매수일", value=date.today())
+                        _sn_memo  = st.text_input("메모", placeholder="매수 이유...")
+                        if st.form_submit_button("💾 저장", use_container_width=True):
+                            _existing_notes_s[_sel_name] = {
+                                "ticker": _sel_tkr, "buy_price": int(_sn_price),
+                                "quantity": int(_sn_qty), "buy_date": _sn_date.isoformat(),
+                                "note": _sn_memo.strip(), "peak_price": int(_sn_price),
+                                "status": "보유중",
+                            }
+                            _save_notes_smart(_existing_notes_s)
+                            st.success(f"✅ {_sel_name} 트레이드 노트에 추가됨!")
+                            st.rerun()
+    else:
+        st.info("일치하는 종목이 없습니다.")
+    st.divider()
 
 # ─── SECTION 7: 트레이드 노트 ─────────────────────────────────────────────────
 
@@ -1945,6 +2026,16 @@ else:
 </div>""",
                         unsafe_allow_html=True,
                     )
+
+            # ── 재무·가격 테이블 ──────────────────────────────────────────────
+            _stage_tickers = [s["ticker"] for s in _stage["stocks"]]
+            if market_data_raw:
+                st.markdown("##### 📊 재무·가격 데이터")
+                with st.spinner("데이터 조회 중..."):
+                    _stage_rows = _build_stock_rows(_stage_tickers)
+                _render_stock_table(_stage_rows, height=len(_stage_tickers) * 38 + 60)
+            else:
+                st.caption("⚠️ 재무·가격 데이터 없음 — 파이프라인 실행 후 표시됩니다.")
 
             # ── 종목 추가 / 삭제 편집기 ──────────────────────────────────────
             with st.expander(f"✏️ {_stage['name']} 단계 종목 편집"):
