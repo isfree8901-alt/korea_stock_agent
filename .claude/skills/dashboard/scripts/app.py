@@ -162,6 +162,150 @@ def _wl_button(ticker: str, name: str, key_suffix: str = "") -> None:
         st.rerun()
 
 
+# ─── 미국 주식 (yfinance) 헬퍼 ────────────────────────────────────────────────
+
+US_WATCHLIST_PATH = BASE_DIR / "data" / "us_watchlist.json"
+
+def _load_us_watchlist() -> list[dict]:
+    if "_us_wl_cache" not in st.session_state:
+        try:
+            st.session_state["_us_wl_cache"] = (
+                json.loads(US_WATCHLIST_PATH.read_text(encoding="utf-8"))
+                if US_WATCHLIST_PATH.exists() else []
+            )
+        except Exception:
+            st.session_state["_us_wl_cache"] = []
+    return st.session_state["_us_wl_cache"]
+
+
+def _save_us_watchlist(items: list[dict]) -> None:
+    st.session_state["_us_wl_cache"] = items
+    US_WATCHLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    US_WATCHLIST_PATH.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _us_wl_add(ticker: str, name: str, note: str = "", target_price: float = 0.0) -> bool:
+    wl = _load_us_watchlist()
+    if any(w["ticker"] == ticker for w in wl):
+        return False
+    wl.append({"ticker": ticker, "name": name, "added_date": date.today().isoformat(),
+                "note": note, "target_price": target_price})
+    _save_us_watchlist(wl)
+    return True
+
+
+def _us_wl_remove(ticker: str) -> None:
+    _save_us_watchlist([w for w in _load_us_watchlist() if w["ticker"] != ticker])
+
+
+try:
+    import yfinance as _yf
+    _YF_OK = True
+except ImportError:
+    _yf = None  # type: ignore
+    _YF_OK = False
+
+
+@st.cache_data(show_spinner=False, ttl=180)
+def _yf_price(ticker: str) -> dict:
+    """yfinance fast_info → price dict. 3분 캐시."""
+    if not _YF_OK:
+        return {}
+    try:
+        fi = _yf.Ticker(ticker).fast_info
+        last  = getattr(fi, "last_price",     None)
+        prev  = getattr(fi, "previous_close", None)
+        chg   = (last / prev - 1) * 100 if last and prev and prev != 0 else None
+        return {
+            "last":     last,
+            "prev":     prev,
+            "chg":      chg,
+            "high52":   getattr(fi, "year_high",   None),
+            "low52":    getattr(fi, "year_low",    None),
+            "mktcap":   getattr(fi, "market_cap",  None),
+            "currency": getattr(fi, "currency",    "USD"),
+        }
+    except Exception:
+        return {}
+
+
+@st.cache_data(show_spinner=False, ttl=180)
+def _yf_history(ticker: str, period: str = "1y") -> "pd.DataFrame | None":
+    """yfinance OHLCV 히스토리. 3분 캐시."""
+    if not _YF_OK:
+        return None
+    try:
+        df = _yf.Ticker(ticker).history(period=period)
+        if df is None or df.empty:
+            return None
+        df = df.reset_index()
+        df["Date"] = pd.to_datetime(df["Date"]).dt.tz_localize(None)
+        # 스파이크 제거
+        if all(c in df.columns for c in ["Open", "High", "Low", "Close"]):
+            _rm = df["Close"].rolling(15, min_periods=1, center=True).median()
+            _mask = (df["High"] <= _rm * 3.0) & (df["Low"] >= _rm * 0.2) & (df["Close"] >= _rm * 0.2)
+            df = df[_mask].reset_index(drop=True)
+        return df
+    except Exception:
+        return None
+
+
+_YF_PERIOD_MAP = {"1개월": "1mo", "3개월": "3mo", "6개월": "6mo", "1년": "1y", "2년": "2y"}
+
+
+def _render_us_chart(ticker: str, name: str, key_prefix: str = "") -> None:
+    """미국 주식 캔들차트 (yfinance). 국내 차트와 동일 컨셉."""
+    if not _YF_OK:
+        st.warning("yfinance 미설치 — `pip install yfinance`")
+        return
+    _uc1, _uc2 = st.columns([3, 4])
+    with _uc1:
+        _u_period = st.radio("기간", list(_YF_PERIOD_MAP.keys()),
+                             index=3, horizontal=True, key=f"ucp_{key_prefix}_{ticker}")
+    with _uc2:
+        _u_ma = st.multiselect("이동평균선", ["5일", "20일", "60일"],
+                               default=["20일", "60일"], key=f"uma_{key_prefix}_{ticker}")
+    _u_hist = _yf_history(ticker, _YF_PERIOD_MAP[_u_period])
+    if _u_hist is None or _u_hist.empty:
+        st.warning(f"{name}({ticker}) 데이터를 가져올 수 없습니다.")
+        return
+    _has_ohlc = all(c in _u_hist.columns for c in ["Open", "High", "Low", "Close"])
+    _has_vol  = "Volume" in _u_hist.columns
+    _uf = make_subplots(rows=2 if _has_vol else 1, cols=1, shared_xaxes=True,
+                        row_heights=[0.75, 0.25] if _has_vol else [1.0], vertical_spacing=0.03)
+    if _has_ohlc:
+        _uf.add_trace(go.Candlestick(
+            x=_u_hist["Date"], open=_u_hist["Open"], high=_u_hist["High"],
+            low=_u_hist["Low"], close=_u_hist["Close"], name=name,
+            increasing_line_color="#15803d", decreasing_line_color="#b91c1c",
+            increasing_fillcolor="#15803d", decreasing_fillcolor="#b91c1c",
+        ), row=1, col=1)
+    else:
+        _uf.add_trace(go.Scatter(x=_u_hist["Date"], y=_u_hist["Close"], mode="lines",
+                                  name=name, line=dict(color="#1e40af", width=2)), row=1, col=1)
+    _u_ma_map = {"5일": (5, "#f59e0b"), "20일": (20, "#3b82f6"), "60일": (60, "#8b5cf6")}
+    for _um in _u_ma:
+        _ud, _uc = _u_ma_map[_um]
+        if len(_u_hist) >= _ud:
+            _uf.add_trace(go.Scatter(x=_u_hist["Date"],
+                                      y=_u_hist["Close"].rolling(_ud).mean(),
+                                      mode="lines", name=f"MA{_ud}",
+                                      line=dict(color=_uc, width=1.5)), row=1, col=1)
+    if _has_vol:
+        _uvc = ["#15803d" if (_has_ohlc and _u_hist["Close"].iloc[i] >= _u_hist["Open"].iloc[i])
+                else "#b91c1c" for i in range(len(_u_hist))]
+        _uf.add_trace(go.Bar(x=_u_hist["Date"], y=_u_hist["Volume"],
+                              marker_color=_uvc, showlegend=False), row=2, col=1)
+        _uf.update_yaxes(title_text="거래량", tickformat=".2s", row=2, col=1)
+    _uf.update_layout(title=f"{name} ({ticker})", xaxis_rangeslider_visible=False,
+                       height=520, margin=dict(l=10, r=10, t=45, b=10),
+                       paper_bgcolor="white", plot_bgcolor="#fafafa",
+                       legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(size=11)))
+    _uf.update_xaxes(showgrid=True, gridcolor="#e5e7eb")
+    _uf.update_yaxes(showgrid=True, gridcolor="#e5e7eb", row=1, col=1)
+    st.plotly_chart(_uf, use_container_width=True)
+
+
 def load_alloc() -> dict:
     if ALLOC_PATH.exists():
         try:
@@ -798,11 +942,23 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
         st.warning(f"{name}({ticker}) 차트 데이터를 불러올 수 없습니다.")
         return
 
+    # ── 1b. 이상치(스파이크) 제거 ─────────────────────────────────────────────
+    # pykrx/CSV에서 가끔 분할·병합 오류로 극단값이 섞임 → 롤링 중앙값 대비 3배 초과 행 제거
+    if all(c in df_full.columns for c in ["Open", "High", "Low", "Close"]):
+        _roll_med = df_full["Close"].rolling(15, min_periods=1, center=True).median()
+        _spike_mask = (
+            (df_full["High"]  <= _roll_med * 3.0) &
+            (df_full["Low"]   >= _roll_med * 0.2) &
+            (df_full["Open"]  >= _roll_med * 0.2) &
+            (df_full["Close"] >= _roll_med * 0.2)
+        )
+        df_full = df_full[_spike_mask].reset_index(drop=True)
+
     # ── 2. 컨트롤 ────────────────────────────────────────────────────────────
     _c1, _c2, _c3 = st.columns([2, 4, 2])
     with _c1:
-        _period = st.radio("기간", ["6개월", "1년", "2년"],
-                           index=1, horizontal=True, key=f"cp_{ticker}")
+        _period = st.radio("기간", ["1개월", "3개월", "6개월", "1년", "2년"],
+                           index=3, horizontal=True, key=f"cp_{ticker}")
     with _c2:
         _ma_sel = st.multiselect("이동평균선",
                                  ["5일", "20일", "60일", "120일"],
@@ -811,7 +967,7 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
     with _c3:
         _show_trend = st.checkbox("저항선·지지선", value=True, key=f"tr_{ticker}")
 
-    _n = {"6개월": 126, "1년": 252, "2년": 504}[_period]
+    _n = {"1개월": 21, "3개월": 63, "6개월": 126, "1년": 252, "2년": 504}[_period]
     df = df_full.tail(_n).reset_index(drop=True)
     has_ohlc = all(c in df.columns for c in ["Open", "High", "Low", "Close"])
 
@@ -1112,13 +1268,12 @@ def _render_stock_table(rows: list[dict], height: int = 360, table_key: str = "d
 
 # ─── 메인 탭 ─────────────────────────────────────────────────────────────────
 
-_tab_watch, _tab_market, _tab_screen, _tab_news, _tab_trade, _tab_global, _tab_system = st.tabs([
+_tab_watch, _tab_market, _tab_screen, _tab_news, _tab_trade, _tab_system = st.tabs([
     "⭐ 관심종목·미래산업",
     "🌟 시장분석",
     "🔬 종목탐색",
     "📰 뉴스·공시",
     "📒 트레이드",
-    "🌍 해외주식",
     "⚙️ 시스템",
 ])
 
@@ -1464,6 +1619,157 @@ with _tab_watch:
                     st.caption(f"**{_grp['description']}**")
                     st.markdown("")
                     _render_stock_cards_and_table(_grp["stocks"], f"aisec_{_grp['group_key']}")
+
+    st.divider()
+
+    # ─── 🇺🇸 미국 관심종목 ────────────────────────────────────────────────────────
+
+    st.header("🇺🇸 미국 관심종목")
+
+    if not _YF_OK:
+        st.warning("yfinance 미설치 — `pip install yfinance` 후 재시작하세요.")
+    else:
+        _us_wl_items = _load_us_watchlist()
+
+        _uwc1, _uwc2, _uwc3 = st.columns([3, 2, 2])
+        with _uwc3:
+            with st.popover("➕ 미국 종목 추가", use_container_width=True):
+                _u_add_tkr  = st.text_input("티커 (예: NVDA, AAPL)", key="us_wl_add_tkr",
+                                              placeholder="NVDA").upper().strip()
+                _u_add_name = st.text_input("종목명 (선택)", key="us_wl_add_name",
+                                             placeholder="엔비디아")
+                _u_add_note = st.text_input("메모", key="us_wl_add_note", placeholder="관심 이유")
+                if st.button("⭐ 추가", key="us_wl_add_btn", use_container_width=True):
+                    if _u_add_tkr:
+                        _display_name = _u_add_name.strip() or _u_add_tkr
+                        _ok = _us_wl_add(_u_add_tkr, _display_name, note=_u_add_note.strip())
+                        if _ok:
+                            st.success(f"{_display_name} 추가됨!")
+                            st.rerun()
+                        else:
+                            st.warning("이미 추가된 종목입니다.")
+
+        with _uwc2:
+            _us_sort = st.selectbox("정렬", ["추가일↓", "전일등락↓", "목표괴리↓"],
+                                     key="us_wl_sort", label_visibility="collapsed")
+
+        if not _us_wl_items:
+            st.info("미국 관심 종목이 없습니다. ➕ 버튼으로 추가하세요. (예: NVDA, AAPL, MSFT)")
+        else:
+            # 실시간 가격 조회
+            _us_rows = []
+            for _uw in _us_wl_items:
+                _utk = _uw["ticker"]
+                _upd = _yf_price(_utk)
+                _u_last   = _upd.get("last")
+                _u_chg    = _upd.get("chg")
+                _u_cur    = _upd.get("currency", "USD")
+                _u_target = _uw.get("target_price") or 0.0
+                _u_gap    = round((_u_target / _u_last - 1) * 100, 2) if _u_last and _u_target else None
+                _us_rows.append({
+                    "_ticker":  _utk, "_name": _uw["name"],
+                    "_last":    _u_last, "_chg":  _u_chg, "_cur": _u_cur,
+                    "_target":  _u_target, "_gap": _u_gap,
+                    "_note":    _uw.get("note",""), "_added": _uw.get("added_date",""),
+                })
+
+            # 정렬
+            if _us_sort == "전일등락↓":
+                _us_rows.sort(key=lambda r: (r["_chg"] or -999), reverse=True)
+            elif _us_sort == "목표괴리↓":
+                _us_rows.sort(key=lambda r: (r["_gap"] or -999), reverse=True)
+            else:
+                _us_rows.sort(key=lambda r: r["_added"], reverse=True)
+
+            # 테이블
+            _us_disp = pd.DataFrame({
+                "종목명":      [r["_name"]   for r in _us_rows],
+                "티커":        [r["_ticker"] for r in _us_rows],
+                "현재가":      [f"{r['_cur']} {r['_last']:,.2f}" if r["_last"] else "—" for r in _us_rows],
+                "전일(%)":     [round(r["_chg"], 2) if r["_chg"] is not None else None for r in _us_rows],
+                "목표가":      [f"{r['_cur']} {r['_target']:,.2f}" if r["_target"] else "—" for r in _us_rows],
+                "목표괴리(%)": [r["_gap"] for r in _us_rows],
+                "메모":        [r["_note"]   for r in _us_rows],
+                "추가일":      [r["_added"]  for r in _us_rows],
+            })
+            _us_col_names = list(_us_disp.columns)
+
+            def _us_style(row):
+                styles = [""] * len(_us_col_names)
+                _apply_chg_style(styles, _us_col_names, "전일(%)",     row["전일(%)"])
+                _apply_chg_style(styles, _us_col_names, "목표괴리(%)", row["목표괴리(%)"])
+                return styles
+
+            _us_ev = st.dataframe(
+                _us_disp.style.apply(_us_style, axis=1),
+                use_container_width=True,
+                height=min(500, 80 + len(_us_rows) * 38),
+                on_select="rerun", selection_mode="single-row",
+                key="us_wl_tbl", hide_index=True,
+            )
+            _us_sel = (_us_ev.selection.rows or []) if hasattr(_us_ev, "selection") else []
+
+            if _us_sel and _us_sel[0] < len(_us_rows):
+                _uws = _us_rows[_us_sel[0]]
+                _u_exp1, _u_exp2 = st.columns([3, 1])
+                with _u_exp1:
+                    with st.expander(f"📈 {_uws['_name']} ({_uws['_ticker']}) 차트", expanded=True):
+                        _render_us_chart(_uws["_ticker"], _uws["_name"], key_prefix="wl")
+                with _u_exp2:
+                    with st.expander("✏️ 편집 / 삭제", expanded=True):
+                        _u_we = next((w for w in _us_wl_items if w["ticker"] == _uws["_ticker"]), None)
+                        if _u_we:
+                            _u_cur_price = _uws["_last"] or 0.0
+                            _u_tp_key = f"us_ni_{_uws['_ticker']}"
+                            if _u_tp_key not in st.session_state:
+                                st.session_state[_u_tp_key] = float(_u_we.get("target_price") or 0.0)
+                            if _u_cur_price:
+                                st.caption(f"현재가 **{_uws['_cur']} {_u_cur_price:,.2f}**")
+                            # % 프리셋
+                            st.caption("현재가 대비 목표가")
+                            _u_pct_rows = [[5, 10, 15], [20, 25, 30]]
+                            for _u_pr in _u_pct_rows:
+                                _u_pr_cols = st.columns(3)
+                                for _u_ci, _u_pct in enumerate(_u_pr):
+                                    with _u_pr_cols[_u_ci]:
+                                        _u_calc = round(_u_cur_price * (1 + _u_pct / 100), 2) if _u_cur_price else 0.0
+                                        if st.button(
+                                            f"+{_u_pct}%\n{_u_calc:,.1f}" if _u_calc else f"+{_u_pct}%",
+                                            key=f"us_pct_{_uws['_ticker']}_{_u_pct}",
+                                            use_container_width=True,
+                                        ):
+                                            st.session_state[_u_tp_key] = _u_calc
+                                            st.rerun()
+                            st.caption("또는 직접 입력")
+                            _u_e_target = st.number_input(
+                                "목표가", min_value=0.0, step=1.0,
+                                key=_u_tp_key, label_visibility="collapsed",
+                            )
+                            if _u_cur_price and _u_e_target:
+                                _u_gap_pct = (_u_e_target / _u_cur_price - 1) * 100
+                                _u_gc = "#16a34a" if _u_gap_pct >= 0 else "#dc2626"
+                                st.markdown(
+                                    f'<div style="text-align:center;font-size:13px;color:{_u_gc};'
+                                    f'font-weight:600;margin:4px 0">목표까지 {_u_gap_pct:+.1f}%</div>',
+                                    unsafe_allow_html=True,
+                                )
+                            _u_note_e = st.text_input("메모", value=_u_we.get("note",""),
+                                                       key=f"us_note_{_uws['_ticker']}")
+                            _uf1, _uf2 = st.columns(2)
+                            if _uf1.button("💾 저장", key=f"us_save_{_uws['_ticker']}",
+                                           use_container_width=True):
+                                for _uwi in _us_wl_items:
+                                    if _uwi["ticker"] == _uws["_ticker"]:
+                                        _uwi["target_price"] = float(_u_e_target)
+                                        _uwi["note"] = _u_note_e.strip()
+                                        break
+                                _save_us_watchlist(_us_wl_items)
+                                del st.session_state[_u_tp_key]
+                                st.rerun()
+                            if _uf2.button("🗑️ 삭제", key=f"us_del_{_uws['_ticker']}",
+                                           use_container_width=True):
+                                _us_wl_remove(_uws["_ticker"])
+                                st.rerun()
 
     st.divider()
 
@@ -2402,6 +2708,137 @@ with _tab_screen:
 
     st.divider()
 
+    # ─── 🇺🇸 미국 종목 검색 ──────────────────────────────────────────────────────
+
+    st.header("🇺🇸 미국 종목 검색")
+
+    _US_PRESETS: dict[str, list[str]] = {
+        "🤖 AI·반도체": ["NVDA", "AMD", "INTC", "QCOM", "AVGO", "ARM", "AMAT", "MU"],
+        "⚡ AI 전력": ["GEV", "CEG", "ETN", "VRT", "EQIX", "DLR", "PWR", "AME"],
+        "🛡️ 사이버보안": ["CRWD", "PANW", "ZS", "FTNT", "S", "OKTA", "CYBR", "NET"],
+        "🇺🇸 빅테크": ["MSFT", "AAPL", "GOOGL", "META", "AMZN", "TSLA", "TSM", "ASML"],
+    }
+
+    if not _YF_OK:
+        st.warning("yfinance 미설치 — `pip install yfinance` 후 재시작하세요.")
+    else:
+        _usc1, _usc2 = st.columns([3, 2])
+        with _usc1:
+            _us_search_in = st.text_input(
+                "티커 직접 입력",
+                placeholder="예: NVDA, AAPL, TSM (쉼표 구분)",
+                key="us_screen_search", label_visibility="collapsed",
+            )
+        with _usc2:
+            _us_preset_sel = st.selectbox(
+                "프리셋",
+                ["직접 입력"] + list(_US_PRESETS.keys()),
+                key="us_screen_preset", label_visibility="collapsed",
+            )
+
+        if _us_preset_sel != "직접 입력":
+            _us_query_tickers = _US_PRESETS[_us_preset_sel]
+        elif _us_search_in.strip():
+            _us_query_tickers = [t.strip().upper() for t in _us_search_in.replace(",", " ").split() if t.strip()][:12]
+        else:
+            _us_query_tickers = []
+
+        if _us_query_tickers:
+            @st.cache_data(show_spinner="가격 조회 중...", ttl=180)
+            def _us_batch_price(tickers_tuple: tuple) -> list[dict]:
+                rows = []
+                for _tk in tickers_tuple:
+                    pd_ = _yf_price(_tk)
+                    rows.append({
+                        "ticker":    _tk,
+                        "last":      pd_.get("last"),
+                        "chg":       pd_.get("chg"),
+                        "currency":  pd_.get("currency", "USD"),
+                        "high52":    pd_.get("high52"),
+                        "low52":     pd_.get("low52"),
+                        "mktcap":    pd_.get("mktcap"),
+                    })
+                return rows
+
+            _us_prices = _us_batch_price(tuple(_us_query_tickers))
+
+            # ── 가격 카드 그리드 ──────────────────────────────────────────────────
+            _us_card_cols = st.columns(min(4, len(_us_prices)))
+            for _ui, _uprow in enumerate(_us_prices):
+                _utk2 = _uprow["ticker"]
+                _ulast = _uprow.get("last")
+                _uchg  = _uprow.get("chg")
+                _ucur  = _uprow.get("currency", "USD")
+                _uc2   = "#15803d" if (_uchg or 0) >= 0 else "#b91c1c"
+                _u52h  = _uprow.get("high52")
+                _u52l  = _uprow.get("low52")
+                _u_pos_str = ""
+                if _ulast and _u52h and _u52l and _u52h > _u52l:
+                    _u_pos_pct = (_ulast - _u52l) / (_u52h - _u52l) * 100
+                    _u_pos_str = f"52주 {_u_pos_pct:.0f}%"
+                with _us_card_cols[_ui % len(_us_card_cols)]:
+                    st.markdown(
+                        f"""<div style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:8px">
+  <div style="font-weight:700;font-size:14px">{_utk2}</div>
+  <div style="color:#6b7280;font-size:11px;margin-bottom:4px">{_u_pos_str}</div>
+  <div style="font-size:17px;font-weight:700">{f"{_ucur} {_ulast:,.2f}" if _ulast else "—"}</div>
+  <div style="color:{_uc2};font-size:13px;font-weight:600">{f"{_uchg:+.2f}%" if _uchg is not None else "—"}</div>
+</div>""",
+                        unsafe_allow_html=True,
+                    )
+
+            # ── 요약 테이블 ──────────────────────────────────────────────────────
+            _us_tbl_rows = []
+            for _uprow in _us_prices:
+                _utk2   = _uprow["ticker"]
+                _ulast  = _uprow.get("last")
+                _uchg   = _uprow.get("chg")
+                _ucur   = _uprow.get("currency", "USD")
+                _umktcap = _uprow.get("mktcap")
+                _us_tbl_rows.append({
+                    "티커":       _utk2,
+                    "현재가":     f"{_ucur} {_ulast:,.2f}" if _ulast else "—",
+                    "전일(%)" :   round(_uchg, 2) if _uchg is not None else None,
+                    "52주고":     f"{_uprow.get('high52'):,.2f}" if _uprow.get("high52") else "—",
+                    "52주저":     f"{_uprow.get('low52'):,.2f}"  if _uprow.get("low52")  else "—",
+                    "시가총액":   f"${_umktcap/1e9:.1f}B" if _umktcap else "—",
+                })
+            _us_tbl_df  = pd.DataFrame(_us_tbl_rows)
+            _us_tbl_cols = list(_us_tbl_df.columns)
+
+            def _us_tbl_style(row):
+                styles = [""] * len(_us_tbl_cols)
+                _apply_chg_style(styles, _us_tbl_cols, "전일(%)", row["전일(%)"])
+                return styles
+
+            _us_tbl_ev = st.dataframe(
+                _us_tbl_df.style.apply(_us_tbl_style, axis=1),
+                use_container_width=True, hide_index=True,
+                height=min(450, 60 + len(_us_tbl_rows) * 38),
+                on_select="rerun", selection_mode="single-row",
+                key="us_screen_tbl",
+            )
+            _us_tbl_sel = (_us_tbl_ev.selection.rows or []) if hasattr(_us_tbl_ev, "selection") else []
+            if _us_tbl_sel and _us_tbl_sel[0] < len(_us_prices):
+                _u_sel_tk = _us_prices[_us_tbl_sel[0]]["ticker"]
+                with st.expander(f"📈 {_u_sel_tk} 상세 차트", expanded=True):
+                    _render_us_chart(_u_sel_tk, _u_sel_tk, key_prefix="screen")
+
+                # 관심 추가 버튼
+                _us_wl_now = _load_us_watchlist()
+                _already_us = any(w["ticker"] == _u_sel_tk for w in _us_wl_now)
+                if not _already_us:
+                    if st.button(f"☆ {_u_sel_tk} 미국 관심종목 추가", key=f"us_add_from_screen_{_u_sel_tk}"):
+                        _us_wl_add(_u_sel_tk, _u_sel_tk)
+                        st.rerun()
+                else:
+                    st.caption(f"⭐ {_u_sel_tk} 이미 관심종목에 추가됨")
+        else:
+            st.info("프리셋을 선택하거나 티커를 직접 입력하세요.")
+            st.caption("티커 예시: NVDA (엔비디아) · AAPL (애플) · TSM (TSMC) · 7203.T (도요타)")
+
+    st.divider()
+
 
 with _tab_news:
     # ─── SECTION 7: 뉴스 검색 ─────────────────────────────────────────────────────
@@ -2842,220 +3279,6 @@ with _tab_trade:
 
     st.divider()
 
-
-with _tab_global:
-    # ─── 해외주식 (yfinance) ──────────────────────────────────────────────────────
-
-    st.header("🌍 해외주식 조회")
-    st.caption("Yahoo Finance(yfinance) 연동 — 미국·일본·유럽·홍콩 등 글로벌 종목 실시간 조회")
-
-    try:
-        import yfinance as _yf
-        _yf_available = True
-    except ImportError:
-        _yf_available = False
-
-    if not _yf_available:
-        st.error("yfinance 패키지가 설치되지 않았습니다. `pip install yfinance` 를 실행하세요.")
-    else:
-        # ── 자주 보는 종목 프리셋 ──────────────────────────────────────────────────
-        _GLOBAL_PRESETS: dict[str, list[tuple[str, str]]] = {
-            "🇺🇸 미국 빅테크": [
-                ("NVDA",  "엔비디아"),   ("MSFT",  "마이크로소프트"),
-                ("AAPL",  "애플"),       ("GOOGL", "알파벳"),
-                ("META",  "메타"),       ("AMZN",  "아마존"),
-                ("TSM",   "TSMC ADR"),   ("ASML",  "ASML ADR"),
-            ],
-            "🤖 AI·반도체": [
-                ("NVDA",  "엔비디아"),   ("AMD",   "AMD"),
-                ("INTC",  "인텔"),       ("QCOM",  "퀄컴"),
-                ("AVGO",  "브로드컴"),   ("ARM",   "ARM"),
-                ("TSM",   "TSMC ADR"),   ("AMAT",  "어플라이드머티리얼즈"),
-            ],
-            "⚡ AI 전력·인프라": [
-                ("GEV",   "GE Vernova"), ("CEG",   "Constellation Energy"),
-                ("ETN",   "이튼"),       ("VRT",   "Vertiv"),
-                ("EQIX",  "에퀴닉스"),   ("DLR",   "디지털리얼티"),
-                ("AME",   "AMETEK"),     ("PWR",   "Quanta Services"),
-            ],
-            "🛡️ 사이버보안": [
-                ("CRWD",  "크라우드스트라이크"), ("PANW", "팔로알토"),
-                ("ZS",    "지스케일러"),          ("FTNT", "포티넷"),
-                ("S",     "센티넬원"),             ("OKTA", "옥타"),
-                ("CYBR",  "사이버아크"),           ("NET",  "클라우드플레어"),
-            ],
-        }
-
-        _gp1, _gp2 = st.columns([3, 2])
-        with _gp1:
-            _g_search = st.text_input(
-                "티커 직접 입력",
-                placeholder="예: AAPL, TSLA, 005930.KS, 7203.T",
-                key="global_search",
-                label_visibility="collapsed",
-            )
-        with _gp2:
-            _preset_choice = st.selectbox(
-                "프리셋",
-                ["직접 입력"] + list(_GLOBAL_PRESETS.keys()),
-                key="global_preset",
-                label_visibility="collapsed",
-            )
-
-        # 조회할 티커 목록 결정
-        _g_tickers: list[tuple[str, str]] = []
-        if _preset_choice != "직접 입력":
-            _g_tickers = _GLOBAL_PRESETS[_preset_choice]
-        elif _g_search.strip():
-            _raw_tickers = [t.strip().upper() for t in _g_search.replace(",", " ").split() if t.strip()]
-            _g_tickers = [(t, t) for t in _raw_tickers[:10]]
-
-        if _g_tickers:
-            @st.cache_data(show_spinner="Yahoo Finance 조회 중...", ttl=300)
-            def _fetch_yf_summary(tickers_key: str) -> list[dict]:
-                tickers = [t for t, _ in eval(tickers_key)]  # noqa
-                results = []
-                for tkr in tickers:
-                    try:
-                        info = _yf.Ticker(tkr).fast_info
-                        results.append({
-                            "ticker":    tkr,
-                            "last":      getattr(info, "last_price",        None),
-                            "prev":      getattr(info, "previous_close",    None),
-                            "high52":    getattr(info, "year_high",         None),
-                            "low52":     getattr(info, "year_low",          None),
-                            "mktcap":    getattr(info, "market_cap",        None),
-                            "currency":  getattr(info, "currency",          "USD"),
-                        })
-                    except Exception:
-                        results.append({"ticker": tkr, "last": None, "prev": None,
-                                        "high52": None, "low52": None, "mktcap": None, "currency": "USD"})
-                return results
-
-            _tickers_key = str(_g_tickers)
-            _g_data = _fetch_yf_summary(_tickers_key)
-
-            # ── 요약 카드 ──────────────────────────────────────────────────────────
-            _name_map = {t: n for t, n in _g_tickers}
-            _card_cols = st.columns(min(4, len(_g_data)))
-            for _gi, _gd in enumerate(_g_data):
-                _gtk   = _gd["ticker"]
-                _gnm   = _name_map.get(_gtk, _gtk)
-                _glast = _gd["last"]
-                _gprev = _gd["prev"]
-                _gcur  = _gd.get("currency", "USD")
-                _gchg  = None
-                if _glast is not None and _gprev and _gprev != 0:
-                    _gchg = (_glast / _gprev - 1) * 100
-                with _card_cols[_gi % len(_card_cols)]:
-                    _gc_color = "#15803d" if (_gchg or 0) >= 0 else "#b91c1c"
-                    _g_52h = _gd.get("high52")
-                    _g_52l = _gd.get("low52")
-                    _g_pos = ""
-                    if _glast and _g_52h and _g_52l and _g_52h > _g_52l:
-                        _pos_pct = (_glast - _g_52l) / (_g_52h - _g_52l) * 100
-                        _g_pos = f" · 52주 {_pos_pct:.0f}%"
-                    st.markdown(
-                        f"""<div style="border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:8px">
-  <div style="font-weight:700;font-size:14px">{_gnm}</div>
-  <div style="color:#6b7280;font-size:11px;margin-bottom:4px">{_gtk}{_g_pos}</div>
-  <div style="font-size:18px;font-weight:700">{f"{_gcur} {_glast:,.2f}" if _glast else "—"}</div>
-  <div style="color:{_gc_color};font-size:13px;font-weight:600">{f"{_gchg:+.2f}%" if _gchg is not None else "—"}</div>
-</div>""",
-                        unsafe_allow_html=True,
-                    )
-
-            st.divider()
-
-            # ── 차트 ──────────────────────────────────────────────────────────────
-            st.markdown("#### 📈 상세 차트")
-            _chart_opts = [f"{n} ({t})" for t, n in _g_tickers]
-            _chart_sel  = st.selectbox("종목 선택", _chart_opts, key="global_chart_sel",
-                                        label_visibility="collapsed")
-            _chart_tkr  = _g_tickers[[f"{n} ({t})" for t, n in _g_tickers].index(_chart_sel)][0]
-            _chart_period = st.radio("기간", ["1mo", "3mo", "6mo", "1y", "2y"],
-                                      index=3, horizontal=True, key="global_chart_period")
-
-            @st.cache_data(show_spinner=False, ttl=300)
-            def _fetch_yf_hist(ticker: str, period: str) -> "pd.DataFrame | None":
-                try:
-                    df = _yf.Ticker(ticker).history(period=period)
-                    if df is not None and not df.empty:
-                        df = df.reset_index()
-                        df["Date"] = pd.to_datetime(df["Date"]).dt.tz_localize(None)
-                        return df
-                except Exception:
-                    pass
-                return None
-
-            _g_hist = _fetch_yf_hist(_chart_tkr, _chart_period)
-            if _g_hist is not None and not _g_hist.empty:
-                _g_fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
-                                       row_heights=[0.75, 0.25], vertical_spacing=0.03)
-                _g_fig.add_trace(go.Candlestick(
-                    x=_g_hist["Date"], open=_g_hist["Open"], high=_g_hist["High"],
-                    low=_g_hist["Low"], close=_g_hist["Close"],
-                    name=_chart_tkr,
-                    increasing_line_color="#15803d", decreasing_line_color="#b91c1c",
-                    increasing_fillcolor="#15803d", decreasing_fillcolor="#b91c1c",
-                ), row=1, col=1)
-                for _gp, _gc in [("20일", "#3b82f6"), ("60일", "#8b5cf6")]:
-                    _gd_n = int(_gp.replace("일", ""))
-                    if len(_g_hist) >= _gd_n:
-                        _g_fig.add_trace(go.Scatter(
-                            x=_g_hist["Date"],
-                            y=_g_hist["Close"].rolling(_gd_n).mean(),
-                            mode="lines", name=f"MA{_gd_n}",
-                            line=dict(color=_gc, width=1.5),
-                        ), row=1, col=1)
-                if "Volume" in _g_hist.columns:
-                    _gvol_c = [
-                        "#15803d" if _g_hist["Close"].iloc[i] >= _g_hist["Open"].iloc[i] else "#b91c1c"
-                        for i in range(len(_g_hist))
-                    ]
-                    _g_fig.add_trace(go.Bar(
-                        x=_g_hist["Date"], y=_g_hist["Volume"],
-                        marker_color=_gvol_c, showlegend=False,
-                    ), row=2, col=1)
-                _g_fig.update_layout(
-                    title=f"{_chart_sel}",
-                    xaxis_rangeslider_visible=False,
-                    height=560,
-                    margin=dict(l=10, r=10, t=45, b=10),
-                    paper_bgcolor="white", plot_bgcolor="#fafafa",
-                )
-                _g_fig.update_xaxes(showgrid=True, gridcolor="#e5e7eb")
-                _g_fig.update_yaxes(showgrid=True, gridcolor="#e5e7eb", row=1, col=1)
-                st.plotly_chart(_g_fig, use_container_width=True)
-            else:
-                st.warning(f"{_chart_tkr} 차트 데이터를 가져올 수 없습니다.")
-
-            # ── 요약 재무 테이블 ──────────────────────────────────────────────────
-            with st.expander("📋 전체 종목 요약 테이블"):
-                _g_rows = []
-                for _gd in _g_data:
-                    _gtk = _gd["ticker"]
-                    _glast = _gd["last"]
-                    _gprev = _gd.get("prev")
-                    _gcur  = _gd.get("currency", "USD")
-                    _gchg  = (_glast / _gprev - 1) * 100 if _glast and _gprev and _gprev != 0 else None
-                    _gmktcap = _gd.get("mktcap")
-                    _g_rows.append({
-                        "종목명":     _name_map.get(_gtk, _gtk),
-                        "티커":       _gtk,
-                        "현재가":     f"{_gcur} {_glast:,.2f}" if _glast else "—",
-                        "전일대비(%)": f"{_gchg:+.2f}%" if _gchg is not None else "—",
-                        "52주고":     f"{_gd.get('high52'):,.2f}" if _gd.get("high52") else "—",
-                        "52주저":     f"{_gd.get('low52'):,.2f}"  if _gd.get("low52")  else "—",
-                        "시가총액":   f"${_gmktcap/1e9:.1f}B" if _gmktcap and _gcur == "USD" else ("—" if not _gmktcap else f"{_gcur} {_gmktcap/1e9:.1f}B"),
-                    })
-                st.dataframe(pd.DataFrame(_g_rows), use_container_width=True, hide_index=True)
-
-        else:
-            st.info("프리셋을 선택하거나 티커를 직접 입력하세요. 예: NVDA, AAPL, TSMC, 7203.T")
-            st.caption("한국 종목: `005930.KS` (삼성전자), 일본: `7203.T` (도요타), 홍콩: `0700.HK` (텐센트)")
-
-    st.divider()
 
 
 with _tab_system:

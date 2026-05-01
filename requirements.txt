@@ -17,3 +17,4 @@ python-dotenv>=1.0.0
 tqdm>=4.66.0
 jsonschema>=4.19.0
 pytest>=7.4.0
+yfinance>=0.2.50
