@@ -974,7 +974,7 @@ def _build_stock_rows(tickers: list[str]) -> list[dict]:
     return rows
 
 def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
-    """캔들스틱 + 이동평균선 + 추세선(저항·지지). historical CSV → pykrx fallback."""
+    """캔들스틱 + MA + 추세선 + 매매 신호. historical CSV → pykrx fallback."""
     from datetime import timedelta
 
     # ── 1. 최대 2년치 로드 ─────────────────────────────────────────────────
@@ -1004,7 +1004,7 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
         st.warning(f"{name}({ticker}) 차트 데이터를 불러올 수 없습니다.")
         return
 
-    # ── 2. 기간 / MA / 추세선 컨트롤 ─────────────────────────────────────────
+    # ── 2. 컨트롤 ────────────────────────────────────────────────────────────
     _c1, _c2, _c3 = st.columns([2, 4, 2])
     with _c1:
         _period = st.radio("기간", ["6개월", "1년", "2년"],
@@ -1021,7 +1021,7 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
     df = df_full.tail(_n).reset_index(drop=True)
     has_ohlc = all(c in df.columns for c in ["Open", "High", "Low", "Close"])
 
-    # ── 3. Figure (가격 + 거래량 서브플롯) ─────────────────────────────────────
+    # ── 3. Figure ─────────────────────────────────────────────────────────────
     has_vol = "Volume" in df.columns
     fig = make_subplots(
         rows=2 if has_vol else 1, cols=1, shared_xaxes=True,
@@ -1046,62 +1046,120 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
     _ma_days  = {"5일": 5, "20일": 20, "60일": 60, "120일": 120}
     for _m in _ma_sel:
         _p = _ma_days[_m]
-        # MA를 df_full 전체로 계산 후 플롯 구간만 tail
         _ma_vals = df_full["Close"].rolling(_p).mean().tail(_n).values
         fig.add_trace(go.Scatter(
             x=df["Date"], y=_ma_vals, mode="lines", name=f"MA{_p}",
             line=dict(color=_ma_color[_m], width=1.5),
         ), row=1, col=1)
 
-    # ── 6. 추세선 (피벗 고점·저점 기반) ──────────────────────────────────────
+    # ── 6. 추세선 + 매매 신호 ────────────────────────────────────────────────
+    _resist_coef = None
+    _support_coef = None
+
     if _show_trend and has_ohlc and len(df) >= 30:
         _highs = df["High"].values.astype(float)
         _lows  = df["Low"].values.astype(float)
+        _close = df["Close"].values.astype(float)
         _idx   = np.arange(len(df))
-        _win   = max(7, len(df) // 25)  # 데이터 길이에 비례한 윈도우
+        _win   = max(7, len(df) // 25)
 
         _h_ser = pd.Series(_highs)
         _l_ser = pd.Series(_lows)
-
-        # 피벗 고점: 좌우 _win 봉 중 최고가인 지점
         _peak_mask   = (_h_ser == _h_ser.rolling(_win * 2 + 1, center=True).max())
-        # 피벗 저점: 좌우 _win 봉 중 최저가인 지점
         _trough_mask = (_l_ser == _l_ser.rolling(_win * 2 + 1, center=True).min())
-
         _peak_idx   = _idx[_peak_mask.values]
         _trough_idx = _idx[_trough_mask.values]
 
-        def _draw_trendline(x_pts, y_pts, label, color, dash="dot"):
-            """두 점 이상으로 선형회귀 추세선 → 차트 전체로 연장."""
-            if len(x_pts) < 2:
-                return
-            _coef = np.polyfit(x_pts, y_pts, 1)
-            _y0 = np.polyval(_coef, 0)
-            _y1 = np.polyval(_coef, _idx[-1])
+        # 저항선 계수 계산 (피벗 고점 상위 5개 회귀)
+        if len(_peak_idx) >= 2:
+            _top_peaks = sorted(sorted(_peak_idx, key=lambda i: _highs[i], reverse=True)[:5])
+            _resist_coef = np.polyfit(np.array(_top_peaks), _highs[_top_peaks], 1)
+            _rs = _resist_coef[0]
+            _rl, _rc = ("하락저항선", "#ef4444") if _rs < 0 else ("상승저항선", "#f97316")
             fig.add_trace(go.Scatter(
                 x=[df["Date"].iloc[0], df["Date"].iloc[-1]],
-                y=[float(_y0), float(_y1)],
-                mode="lines", name=label,
-                line=dict(color=color, width=1.8, dash=dash),
+                y=[float(np.polyval(_resist_coef, 0)), float(np.polyval(_resist_coef, _idx[-1]))],
+                mode="lines", name=_rl,
+                line=dict(color=_rc, width=2, dash="dot"),
             ), row=1, col=1)
 
-        # 저항선: 최근 피벗 고점 중 상위 5개 → 회귀선
-        if len(_peak_idx) >= 2:
-            _top_peaks = sorted(_peak_idx, key=lambda i: _highs[i], reverse=True)[:5]
-            _top_peaks = sorted(_top_peaks)  # 시간 순 재정렬
-            _slope_sign = np.polyfit(np.array(_top_peaks), _highs[_top_peaks], 1)[0]
-            _lbl   = "하락저항선" if _slope_sign < 0 else "상승저항선"
-            _color = "#ef4444" if _slope_sign < 0 else "#f97316"
-            _draw_trendline(np.array(_top_peaks), _highs[_top_peaks], _lbl, _color)
-
-        # 지지선: 최근 피벗 저점 중 하위 5개 → 회귀선
+        # 지지선 계수 계산 (피벗 저점 하위 5개 회귀)
         if len(_trough_idx) >= 2:
-            _bot_troughs = sorted(_trough_idx, key=lambda i: _lows[i])[:5]
-            _bot_troughs = sorted(_bot_troughs)
-            _slope_sign = np.polyfit(np.array(_bot_troughs), _lows[_bot_troughs], 1)[0]
-            _lbl   = "상승지지선" if _slope_sign > 0 else "하락지지선"
-            _color = "#22c55e" if _slope_sign > 0 else "#06b6d4"
-            _draw_trendline(np.array(_bot_troughs), _lows[_bot_troughs], _lbl, _color)
+            _bot_troughs = sorted(sorted(_trough_idx, key=lambda i: _lows[i])[:5])
+            _support_coef = np.polyfit(np.array(_bot_troughs), _lows[_bot_troughs], 1)
+            _ss = _support_coef[0]
+            _sl, _sc = ("상승지지선", "#22c55e") if _ss > 0 else ("하락지지선", "#06b6d4")
+            fig.add_trace(go.Scatter(
+                x=[df["Date"].iloc[0], df["Date"].iloc[-1]],
+                y=[float(np.polyval(_support_coef, 0)), float(np.polyval(_support_coef, _idx[-1]))],
+                mode="lines", name=_sl,
+                line=dict(color=_sc, width=2, dash="dot"),
+            ), row=1, col=1)
+
+        # ── 매매 신호 마커 ───────────────────────────────────────────────────
+        # 지지선 터치(매수): 저가가 지지선 ±2% 이내에 닿고 종가가 지지선 위
+        # 저항선 터치(매도): 고가가 저항선 ±2% 이내에 닿고 종가가 저항선 아래
+        # 저항선 돌파(강한 매수): 전일 종가 < 저항선, 금일 종가 > 저항선
+        # 지지선 이탈(강한 매도): 전일 종가 > 지지선, 금일 종가 < 지지선
+        _NEAR = 0.022
+        _buy_x, _buy_y, _buy_hover   = [], [], []
+        _sell_x, _sell_y, _sell_hover = [], [], []
+        _bo_x, _bo_y, _bo_hover       = [], [], []   # breakout
+        _bd_x, _bd_y, _bd_hover       = [], [], []   # breakdown
+
+        for _i in range(1, len(df)):
+            _sv = float(np.polyval(_support_coef, _i)) if _support_coef is not None else None
+            _rv = float(np.polyval(_resist_coef,  _i)) if _resist_coef  is not None else None
+            _sv_p = float(np.polyval(_support_coef, _i-1)) if _support_coef is not None else None
+            _rv_p = float(np.polyval(_resist_coef,  _i-1)) if _resist_coef  is not None else None
+            _c = _close[_i]; _pc = _close[_i-1]
+            _lo = _lows[_i]; _hi = _highs[_i]
+            _dt = df["Date"].iloc[_i]
+
+            if _sv is not None:
+                if _pc >= _sv_p and _c < _sv:                          # 지지 이탈
+                    _bd_x.append(_dt); _bd_y.append(_lo * 0.975)
+                    _bd_hover.append(f"지지 이탈 ₩{int(_c):,} ({_dt})")
+                elif abs(_lo - _sv) / _sv <= _NEAR and _c >= _sv:     # 지지선 터치
+                    _buy_x.append(_dt); _buy_y.append(_lo * 0.985)
+                    _buy_hover.append(f"지지선 터치 ₩{int(_c):,} ({_dt})")
+
+            if _rv is not None:
+                if _pc <= _rv_p and _c > _rv:                          # 저항 돌파
+                    _bo_x.append(_dt); _bo_y.append(_hi * 1.025)
+                    _bo_hover.append(f"저항 돌파 ₩{int(_c):,} ({_dt})")
+                elif abs(_hi - _rv) / _rv <= _NEAR and _c <= _rv:     # 저항선 터치
+                    _sell_x.append(_dt); _sell_y.append(_hi * 1.015)
+                    _sell_hover.append(f"저항선 터치 ₩{int(_c):,} ({_dt})")
+
+        if _buy_x:
+            fig.add_trace(go.Scatter(
+                x=_buy_x, y=_buy_y, mode="markers", name="매수 구간",
+                marker=dict(symbol="triangle-up", size=11, color="#16a34a",
+                            line=dict(color="#14532d", width=1)),
+                hovertext=_buy_hover, hoverinfo="text",
+            ), row=1, col=1)
+        if _sell_x:
+            fig.add_trace(go.Scatter(
+                x=_sell_x, y=_sell_y, mode="markers", name="매도 구간",
+                marker=dict(symbol="triangle-down", size=11, color="#dc2626",
+                            line=dict(color="#7f1d1d", width=1)),
+                hovertext=_sell_hover, hoverinfo="text",
+            ), row=1, col=1)
+        if _bo_x:
+            fig.add_trace(go.Scatter(
+                x=_bo_x, y=_bo_y, mode="markers", name="저항 돌파 ★",
+                marker=dict(symbol="star", size=14, color="#d97706",
+                            line=dict(color="#78350f", width=1)),
+                hovertext=_bo_hover, hoverinfo="text",
+            ), row=1, col=1)
+        if _bd_x:
+            fig.add_trace(go.Scatter(
+                x=_bd_x, y=_bd_y, mode="markers", name="지지 이탈 ✕",
+                marker=dict(symbol="x", size=13, color="#7f1d1d",
+                            line=dict(color="#450a0a", width=2)),
+                hovertext=_bd_hover, hoverinfo="text",
+            ), row=1, col=1)
 
     # ── 7. 거래량 ─────────────────────────────────────────────────────────────
     if has_vol:
@@ -1119,16 +1177,83 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
     fig.update_layout(
         title=f"{name} ({ticker})",
         xaxis_rangeslider_visible=False,
-        height=580,
+        height=590,
         margin=dict(l=10, r=10, t=45, b=10),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
                     font=dict(size=11)),
-        paper_bgcolor="white",
-        plot_bgcolor="#fafafa",
+        paper_bgcolor="white", plot_bgcolor="#fafafa",
     )
     fig.update_xaxes(showgrid=True, gridcolor="#e5e7eb", gridwidth=1)
     fig.update_yaxes(showgrid=True, gridcolor="#e5e7eb", gridwidth=1, row=1, col=1)
     st.plotly_chart(fig, use_container_width=True)
+
+    # ── 9. 현재 신호 요약 카드 ────────────────────────────────────────────────
+    if _show_trend and has_ohlc and (_resist_coef is not None or _support_coef is not None):
+        _last_i = len(df) - 1
+        _last_c = float(df["Close"].iloc[_last_i])
+        _last_d = str(df["Date"].iloc[_last_i])[:10]
+        _sv_now = float(np.polyval(_support_coef, _last_i)) if _support_coef is not None else None
+        _rv_now = float(np.polyval(_resist_coef,  _last_i)) if _resist_coef  is not None else None
+
+        # 신호 판정
+        if _sv_now and _rv_now:
+            _ds = (_last_c - _sv_now) / _sv_now * 100   # 지지선까지 거리 (양수=위)
+            _dr = (_rv_now - _last_c) / _last_c * 100   # 저항선까지 거리 (양수=아래)
+            if _last_c < _sv_now:
+                _sig = "🔴 지지선 이탈"
+                _desc = f"종가가 지지선을 {abs(_ds):.1f}% 하회. 추세 약화 — 추가 하락 경계, 보유 비중 축소 고려."
+                _act  = "매도 / 관망"
+                _bg, _bd = "#fef2f2", "#ef4444"
+            elif _ds <= 2.5:
+                _sig = "🟢 매수 구간 (지지선 근접)"
+                _desc = f"현재가가 지지선보다 {_ds:.1f}% 위 — 지지선 터치 구간. 반등 가능성 높음."
+                _act  = "분할 매수 검토"
+                _bg, _bd = "#f0fdf4", "#16a34a"
+            elif _last_c > _rv_now:
+                _sig = "🟡 저항선 돌파"
+                _desc = f"종가가 저항선을 {abs(_dr):.1f}% 상회. 추세 전환 신호 — 거래량 동반 시 추가 상승 기대."
+                _act  = "추가 매수 검토 (거래량 확인)"
+                _bg, _bd = "#fffbeb", "#d97706"
+            elif _dr <= 2.5:
+                _sig = "🔴 매도 구간 (저항선 근접)"
+                _desc = f"현재가가 저항선보다 {_dr:.1f}% 아래 — 저항선 터치 구간. 돌파 실패 시 조정 주의."
+                _act  = "일부 차익 실현 검토"
+                _bg, _bd = "#fef2f2", "#dc2626"
+            else:
+                _sig = "⚪ 중립 구간"
+                _desc = f"지지선 +{_ds:.1f}% / 저항선 -{_dr:.1f}% — 뚜렷한 매매 신호 없음."
+                _act  = "관망"
+                _bg, _bd = "#f9fafb", "#9ca3af"
+        elif _sv_now:
+            _ds = (_last_c - _sv_now) / _sv_now * 100
+            _sig = "🟢 지지선 근접" if _ds <= 2.5 else ("🔴 지지 이탈" if _last_c < _sv_now else "⚪ 중립")
+            _desc = f"지지선 대비 {_ds:+.1f}%"
+            _act  = "분할 매수" if _ds <= 2.5 else ("매도" if _last_c < _sv_now else "관망")
+            _bg, _bd = "#f0fdf4" if _ds <= 2.5 else "#f9fafb", "#16a34a" if _ds <= 2.5 else "#9ca3af"
+        else:
+            _dr = (_rv_now - _last_c) / _last_c * 100 if _rv_now else None
+            _sig = "🔴 저항선 근접" if (_dr is not None and _dr <= 2.5) else "⚪ 중립"
+            _desc = f"저항선 대비 {_dr:+.1f}%" if _dr is not None else "추세선 데이터 부족"
+            _act  = "일부 매도" if (_dr is not None and _dr <= 2.5) else "관망"
+            _bg, _bd = "#fef2f2" if (_dr is not None and _dr <= 2.5) else "#f9fafb", "#dc2626" if (_dr is not None and _dr <= 2.5) else "#9ca3af"
+
+        st.markdown(f"""
+<div style="background:{_bg};border-radius:8px;padding:12px 16px;
+            border-left:5px solid {_bd};margin-top:4px">
+  <div style="font-size:13px;color:#6b7280;margin-bottom:4px">
+    현재 신호 &nbsp;·&nbsp; {_last_d} 종가 <b>₩{int(_last_c):,}</b>
+  </div>
+  <div style="font-size:15px;font-weight:700;margin-bottom:4px">{_sig}</div>
+  <div style="font-size:13px;color:#374151;margin-bottom:6px">{_desc}</div>
+  <div style="font-size:12px;background:rgba(0,0,0,0.05);
+              display:inline-block;padding:2px 10px;border-radius:4px">
+    권고 액션: <b>{_act}</b>
+  </div>
+  <div style="font-size:11px;color:#9ca3af;margin-top:8px">
+    ※ 추세선은 과거 피벗 고점·저점의 회귀선입니다. 투자 판단은 본인 책임이며 참고 용도로만 활용하세요.
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 def _apply_chg_style(styles, col_names, col, raw_val):
     if col not in col_names: return
