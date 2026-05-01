@@ -923,6 +923,164 @@ if themes_data:
 
 st.divider()
 
+# ─── 공통 테이블·차트 헬퍼 (모든 섹션에서 공유) ───────────────────────────────────
+
+def _qf_n(v, d=1):
+    if v is None or (isinstance(v, float) and v != v): return "-"
+    r = round(float(v), d)
+    return str(int(r)) if r == int(r) else str(r)
+
+def _chg_fmt_n(v) -> str:
+    if v is None or (isinstance(v, float) and v != v): return "-"
+    return f"{float(v):+.2f}%"
+
+def _period_chg(c_near, c_far) -> float | None:
+    """누적 등락률 두 개로 구간 등락률 계산."""
+    if c_near is None or c_far is None: return None
+    if isinstance(c_near, float) and c_near != c_near: return None
+    if isinstance(c_far,  float) and c_far  != c_far:  return None
+    try:
+        return round(((1 + c_far / 100) / (1 + c_near / 100) - 1) * 100, 2)
+    except (ZeroDivisionError, TypeError):
+        return None
+
+def _build_stock_rows(tickers: list[str]) -> list[dict]:
+    rows = []
+    for tk in tickers:
+        if not market_data_raw:
+            break
+        mkt = market_data_raw.get(tk, {})
+        r   = (ratios_data or {}).get(tk, {})
+        rows.append({
+            "name":           mkt.get("name", tk),
+            "ticker":         tk,
+            "sector":         mkt.get("sector", "-"),
+            "market_cap_억":  mkt.get("market_cap", 0) // 100_000_000,
+            "close":          mkt.get("close", 0),
+            "chg_1d":         mkt.get("change_rate"),
+            "chg_7d":         None,
+            "chg_15d":        None,
+            "chg_30d":        None,
+            "per":            r.get("per"),
+            "pbr":            r.get("pbr"),
+            "eps_growth":     r.get("eps_growth"),
+            "revenue_growth": r.get("revenue_growth"),
+            "roe":            r.get("roe"),
+        })
+    if rows and market_data_raw:
+        rows = enrich_price_changes(rows, market_data_raw)
+    return rows
+
+def _render_stock_chart(ticker: str, name: str, days: int = 60) -> None:
+    """캔들스틱 차트. data/historical CSV → pykrx 순으로 시도."""
+    from datetime import timedelta
+    hist_path = BASE_DIR / "data" / "historical" / f"{ticker}.csv"
+    df_c = None
+    if hist_path.exists():
+        try:
+            df_c = pd.read_csv(hist_path, parse_dates=["Date"])
+            df_c = df_c.sort_values("Date").tail(days).reset_index(drop=True)
+        except Exception:
+            df_c = None
+    if df_c is None or df_c.empty:
+        try:
+            from pykrx import stock as _ks
+            _end = datetime.now()
+            _start = _end - timedelta(days=days + 25)
+            _raw = _ks.get_market_ohlcv_by_date(_start.strftime("%Y%m%d"), _end.strftime("%Y%m%d"), ticker)
+            if _raw is not None and not _raw.empty:
+                _raw = _raw.reset_index()
+                _raw.columns = ["Date" if c == "날짜" else c for c in _raw.columns]
+                _raw = _raw.rename(columns={"시가": "Open", "고가": "High", "저가": "Low", "종가": "Close", "거래량": "Volume"})
+                df_c = _raw[["Date"] + [c for c in ["Open","High","Low","Close","Volume"] if c in _raw.columns]].tail(days)
+        except Exception:
+            df_c = None
+    if df_c is None or df_c.empty:
+        st.warning(f"{name}({ticker}) 차트 데이터를 불러올 수 없습니다.")
+        return
+    has_ohlc = all(c in df_c.columns for c in ["Open", "High", "Low", "Close"])
+    fig = go.Figure()
+    if has_ohlc:
+        fig.add_trace(go.Candlestick(
+            x=df_c["Date"], open=df_c["Open"], high=df_c["High"],
+            low=df_c["Low"], close=df_c["Close"], name=name,
+            increasing_line_color="#15803d", decreasing_line_color="#b91c1c",
+        ))
+    else:
+        fig.add_trace(go.Scatter(x=df_c["Date"], y=df_c["Close"], mode="lines", name=name,
+                                 line=dict(color="#1e40af", width=2)))
+    if "Volume" in df_c.columns:
+        fig.add_trace(go.Bar(x=df_c["Date"], y=df_c["Volume"], name="거래량",
+                             yaxis="y2", marker_color="rgba(120,120,220,0.25)"))
+        fig.update_layout(yaxis2=dict(overlaying="y", side="right", showgrid=False,
+                                      title="거래량", tickformat=".2s"))
+    fig.update_layout(
+        title=f"{name} ({ticker}) — 최근 {len(df_c)}거래일",
+        xaxis_rangeslider_visible=False,
+        height=420, margin=dict(l=10, r=10, t=40, b=20),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+def _apply_chg_style(styles, col_names, col, raw_val):
+    if col not in col_names: return
+    ci = col_names.index(col)
+    if raw_val is None or (isinstance(raw_val, float) and raw_val != raw_val): return
+    v = float(raw_val)
+    if   v >=  5.0: styles[ci] = "background-color:#dcfce7;color:#166534;font-weight:bold"
+    elif v >=  2.0: styles[ci] = "background-color:#f0fdf4;color:#15803d"
+    elif v >=  0.0: styles[ci] = "background-color:#f8fff8;color:#166534"
+    elif v >= -2.0: styles[ci] = "background-color:#fff8f8;color:#b91c1c"
+    elif v >= -5.0: styles[ci] = "background-color:#fee2e2;color:#b91c1c"
+    else:           styles[ci] = "background-color:#fecaca;color:#7f1d1d;font-weight:bold"
+
+def _render_stock_table(rows: list[dict], height: int = 360, table_key: str = "default") -> None:
+    """구간별 등락률 + 재무지표 테이블. 행 클릭 시 캔들스틱 차트 표시."""
+    if not rows:
+        st.info("시장 데이터가 없습니다. 파이프라인을 먼저 실행하세요.")
+        return
+    _rdf = pd.DataFrame(rows)
+    _p_1d    = list(_rdf["chg_1d"])
+    _p_1_7   = [_period_chg(r["chg_1d"],  r["chg_7d"])  for r in rows]
+    _p_7_15  = [_period_chg(r["chg_7d"],  r["chg_15d"]) for r in rows]
+    _p_15_30 = [_period_chg(r["chg_15d"], r["chg_30d"]) for r in rows]
+    _CHG_PERIOD_COLS = ["전일(%)", "1~7일 전(%)", "7~15일 전(%)", "15~30일 전(%)"]
+    _chg_period_raw  = dict(zip(_CHG_PERIOD_COLS, [_p_1d, _p_1_7, _p_7_15, _p_15_30]))
+    _disp = pd.DataFrame({
+        "종목명":        _rdf["name"],
+        "티커":          _rdf["ticker"],
+        "섹터":          _rdf["sector"],
+        "시총(억)":      _rdf["market_cap_억"].apply(lambda x: f"{int(x):,}"),
+        "현재가":        _rdf["close"].apply(lambda x: f"₩{int(x):,}" if x else "-"),
+        "전일(%)":       [_chg_fmt_n(v) for v in _p_1d],
+        "1~7일 전(%)":   [_chg_fmt_n(v) for v in _p_1_7],
+        "7~15일 전(%)":  [_chg_fmt_n(v) for v in _p_7_15],
+        "15~30일 전(%)": [_chg_fmt_n(v) for v in _p_15_30],
+        "PER":           _rdf["per"].apply(lambda x: _qf_n(x)),
+        "PBR":           _rdf["pbr"].apply(lambda x: _qf_n(x, 2)),
+        "EPS성장(%)":    _rdf["eps_growth"].apply(lambda x: _qf_n(x)),
+        "매출성장(%)":   _rdf["revenue_growth"].apply(lambda x: _qf_n(x)),
+        "ROE(%)":        _rdf["roe"].apply(lambda x: _qf_n(x)),
+    })
+    def _style_stock(df_row):
+        ri = df_row.name
+        st_list = [""] * len(df_row)
+        cn = list(df_row.index)
+        for col, raw_list in _chg_period_raw.items():
+            _apply_chg_style(st_list, cn, col, raw_list[ri] if ri < len(raw_list) else None)
+        return st_list
+    st.caption("📌 등락률: 각 구간 내 독립 수익률 (전일=어제 대비, 1~7일=7일 전~어제, 7~15일=15일 전~7일 전, 15~30일=30일 전~15일 전)")
+    _ev = st.dataframe(
+        _disp.style.apply(_style_stock, axis=1),
+        use_container_width=True, hide_index=True, height=height,
+        on_select="rerun", selection_mode="single-row",
+        key=f"tbl_{table_key}",
+    )
+    sel = (_ev.selection.rows or []) if hasattr(_ev, "selection") else []
+    if sel:
+        _sr = rows[sel[0]]
+        with st.expander(f"📈 {_sr['name']} ({_sr['ticker']}) 상세 차트", expanded=True):
+            _render_stock_chart(_sr["ticker"], _sr["name"])
+
 # ─── SECTION 2: 섹터별 시총 Top 10 변동 ──────────────────────────────────────
 
 st.markdown('<a id="top10"></a>', unsafe_allow_html=True)
@@ -1391,173 +1549,6 @@ EPS 2,000원 = "주식 1주당 연간 순이익 2,000원"
 """)
 
 st.divider()
-
-# ─── 공통 테이블·차트 헬퍼 ────────────────────────────────────────────────────────
-
-def _qf_n(v, d=1):
-    if v is None or (isinstance(v, float) and v != v): return "-"
-    r = round(float(v), d)
-    return str(int(r)) if r == int(r) else str(r)
-
-def _chg_fmt_n(v) -> str:
-    if v is None or (isinstance(v, float) and v != v): return "-"
-    return f"{float(v):+.2f}%"
-
-def _period_chg(c_near, c_far) -> float | None:
-    """누적 등락률 두 개로 구간 등락률 계산.
-    c_near: 가까운 시점 누적% (예: chg_7d), c_far: 먼 시점 누적% (예: chg_15d)
-    반환: c_far 시점 → c_near 시점 구간 등락률
-    """
-    if c_near is None or c_far is None: return None
-    if isinstance(c_near, float) and c_near != c_near: return None
-    if isinstance(c_far,  float) and c_far  != c_far:  return None
-    try:
-        return round(((1 + c_far / 100) / (1 + c_near / 100) - 1) * 100, 2)
-    except (ZeroDivisionError, TypeError):
-        return None
-
-def _build_stock_rows(tickers: list[str]) -> list[dict]:
-    rows = []
-    for tk in tickers:
-        if not market_data_raw:
-            break
-        mkt = market_data_raw.get(tk, {})
-        r   = (ratios_data or {}).get(tk, {})
-        rows.append({
-            "name":           mkt.get("name", tk),
-            "ticker":         tk,
-            "sector":         mkt.get("sector", "-"),
-            "market_cap_억":  mkt.get("market_cap", 0) // 100_000_000,
-            "close":          mkt.get("close", 0),
-            "chg_1d":         mkt.get("change_rate"),
-            "chg_7d":         None,
-            "chg_15d":        None,
-            "chg_30d":        None,
-            "per":            r.get("per"),
-            "pbr":            r.get("pbr"),
-            "eps_growth":     r.get("eps_growth"),
-            "revenue_growth": r.get("revenue_growth"),
-            "roe":            r.get("roe"),
-        })
-    if rows and market_data_raw:
-        rows = enrich_price_changes(rows, market_data_raw)
-    return rows
-
-def _render_stock_chart(ticker: str, name: str, days: int = 60) -> None:
-    """캔들스틱 차트. data/historical CSV → pykrx 순으로 시도."""
-    from datetime import timedelta
-    hist_path = BASE_DIR / "data" / "historical" / f"{ticker}.csv"
-    df_c = None
-    if hist_path.exists():
-        try:
-            df_c = pd.read_csv(hist_path, parse_dates=["Date"])
-            df_c = df_c.sort_values("Date").tail(days).reset_index(drop=True)
-        except Exception:
-            df_c = None
-    if df_c is None or df_c.empty:
-        try:
-            from pykrx import stock as _ks
-            _end = datetime.now()
-            _start = _end - timedelta(days=days + 25)
-            _raw = _ks.get_market_ohlcv_by_date(_start.strftime("%Y%m%d"), _end.strftime("%Y%m%d"), ticker)
-            if _raw is not None and not _raw.empty:
-                _raw = _raw.reset_index()
-                _raw.columns = ["Date" if c == "날짜" else c for c in _raw.columns]
-                _raw = _raw.rename(columns={"시가": "Open", "고가": "High", "저가": "Low", "종가": "Close", "거래량": "Volume"})
-                df_c = _raw[["Date"] + [c for c in ["Open","High","Low","Close","Volume"] if c in _raw.columns]].tail(days)
-        except Exception:
-            df_c = None
-    if df_c is None or df_c.empty:
-        st.warning(f"{name}({ticker}) 차트 데이터를 불러올 수 없습니다.")
-        return
-    has_ohlc = all(c in df_c.columns for c in ["Open", "High", "Low", "Close"])
-    fig = go.Figure()
-    if has_ohlc:
-        fig.add_trace(go.Candlestick(
-            x=df_c["Date"], open=df_c["Open"], high=df_c["High"],
-            low=df_c["Low"], close=df_c["Close"], name=name,
-            increasing_line_color="#15803d", decreasing_line_color="#b91c1c",
-        ))
-    else:
-        fig.add_trace(go.Scatter(x=df_c["Date"], y=df_c["Close"], mode="lines", name=name,
-                                 line=dict(color="#1e40af", width=2)))
-    if "Volume" in df_c.columns:
-        fig.add_trace(go.Bar(x=df_c["Date"], y=df_c["Volume"], name="거래량",
-                             yaxis="y2", marker_color="rgba(120,120,220,0.25)"))
-        fig.update_layout(yaxis2=dict(overlaying="y", side="right", showgrid=False,
-                                      title="거래량", tickformat=".2s"))
-    fig.update_layout(
-        title=f"{name} ({ticker}) — 최근 {len(df_c)}거래일",
-        xaxis_rangeslider_visible=False,
-        height=420, margin=dict(l=10, r=10, t=40, b=20),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-def _apply_chg_style(styles, col_names, col, raw_val):
-    if col not in col_names: return
-    ci = col_names.index(col)
-    if raw_val is None or (isinstance(raw_val, float) and raw_val != raw_val): return
-    v = float(raw_val)
-    if   v >=  5.0: styles[ci] = "background-color:#dcfce7;color:#166534;font-weight:bold"
-    elif v >=  2.0: styles[ci] = "background-color:#f0fdf4;color:#15803d"
-    elif v >=  0.0: styles[ci] = "background-color:#f8fff8;color:#166534"
-    elif v >= -2.0: styles[ci] = "background-color:#fff8f8;color:#b91c1c"
-    elif v >= -5.0: styles[ci] = "background-color:#fee2e2;color:#b91c1c"
-    else:           styles[ci] = "background-color:#fecaca;color:#7f1d1d;font-weight:bold"
-
-def _render_stock_table(rows: list[dict], height: int = 360, table_key: str = "default") -> None:
-    """구간별 등락률 + 재무지표 테이블. 행 클릭 시 캔들스틱 차트 표시."""
-    if not rows:
-        st.info("시장 데이터가 없습니다. 파이프라인을 먼저 실행하세요.")
-        return
-    _rdf = pd.DataFrame(rows)
-
-    # ── 구간별 등락률 계산 (누적 → 구간 변환) ──────────────────────────────────
-    _p_1d   = list(_rdf["chg_1d"])
-    _p_1_7  = [_period_chg(r["chg_1d"],  r["chg_7d"])  for r in rows]  # 7일전~어제
-    _p_7_15 = [_period_chg(r["chg_7d"],  r["chg_15d"]) for r in rows]  # 15일전~7일전
-    _p_15_30= [_period_chg(r["chg_15d"], r["chg_30d"]) for r in rows]  # 30일전~15일전
-
-    _CHG_PERIOD_COLS = ["전일(%)", "1~7일 전(%)", "7~15일 전(%)", "15~30일 전(%)"]
-    _chg_period_raw  = dict(zip(_CHG_PERIOD_COLS, [_p_1d, _p_1_7, _p_7_15, _p_15_30]))
-
-    _disp = pd.DataFrame({
-        "종목명":        _rdf["name"],
-        "티커":          _rdf["ticker"],
-        "섹터":          _rdf["sector"],
-        "시총(억)":      _rdf["market_cap_억"].apply(lambda x: f"{int(x):,}"),
-        "현재가":        _rdf["close"].apply(lambda x: f"₩{int(x):,}" if x else "-"),
-        "전일(%)":       [_chg_fmt_n(v) for v in _p_1d],
-        "1~7일 전(%)":   [_chg_fmt_n(v) for v in _p_1_7],
-        "7~15일 전(%)":  [_chg_fmt_n(v) for v in _p_7_15],
-        "15~30일 전(%)": [_chg_fmt_n(v) for v in _p_15_30],
-        "PER":           _rdf["per"].apply(lambda x: _qf_n(x)),
-        "PBR":           _rdf["pbr"].apply(lambda x: _qf_n(x, 2)),
-        "EPS성장(%)":    _rdf["eps_growth"].apply(lambda x: _qf_n(x)),
-        "매출성장(%)":   _rdf["revenue_growth"].apply(lambda x: _qf_n(x)),
-        "ROE(%)":        _rdf["roe"].apply(lambda x: _qf_n(x)),
-    })
-
-    def _style_stock(df_row):
-        ri = df_row.name
-        st_list = [""] * len(df_row)
-        cn = list(df_row.index)
-        for col, raw_list in _chg_period_raw.items():
-            _apply_chg_style(st_list, cn, col, raw_list[ri] if ri < len(raw_list) else None)
-        return st_list
-
-    st.caption("📌 등락률: 각 구간 내 독립 수익률 (전일=어제 대비, 1~7일=7일 전~어제, 7~15일=15일 전~7일 전, 15~30일=30일 전~15일 전)")
-    _ev = st.dataframe(
-        _disp.style.apply(_style_stock, axis=1),
-        use_container_width=True, hide_index=True, height=height,
-        on_select="rerun", selection_mode="single-row",
-        key=f"tbl_{table_key}",
-    )
-    sel = (_ev.selection.rows or []) if hasattr(_ev, "selection") else []
-    if sel:
-        _sr = rows[sel[0]]
-        with st.expander(f"📈 {_sr['name']} ({_sr['ticker']}) 상세 차트", expanded=True):
-            _render_stock_chart(_sr["ticker"], _sr["name"])
 
 # ─── SECTION 6: 퀀트 소형주 스크리너 ──────────────────────────────────────────
 
