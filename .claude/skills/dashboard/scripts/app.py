@@ -1559,6 +1559,9 @@ with _tab_watch:
 
     def _render_stock_cards_and_table(stocks: list[dict], table_key_prefix: str) -> None:
         """종목 카드 + 재무·가격 테이블 렌더러 (AI 섹터 공통)."""
+        if not stocks:
+            st.info("해당 종목 없음")
+            return
         _cols = st.columns(2)
         for _si, _stk in enumerate(stocks):
             _tk = _stk["ticker"]
@@ -1603,6 +1606,75 @@ with _tab_watch:
         else:
             st.caption("⚠️ 재무·가격 데이터 없음 — 파이프라인 실행 후 표시됩니다.")
 
+    def _render_us_cards_section(us_stks: list[dict], key_prefix: str) -> None:
+        """미국 종목 카드 + 차트 셀렉터 (size 뱃지 포함)."""
+        if not us_stks:
+            st.info("해당 종목 없음")
+            return
+        if not _YF_OK:
+            st.warning("yfinance 미설치 — `pip install yfinance` 후 재시작하세요.")
+            return
+        _cols = st.columns(2)
+        for _ui, _ustk in enumerate(us_stks):
+            _utk  = _ustk["ticker"]
+            _upd  = _yf_price(_utk)
+            _ulast = _upd.get("last")
+            _uchg  = _upd.get("chg")
+            _ucur  = _upd.get("currency", "USD")
+            _ulast_str = f"{_ucur} {_ulast:,.2f}" if _ulast else "—"
+            _uchg_str  = f"{_uchg:+.2f}%" if _uchg is not None else "—"
+            _uchg_col  = "#15803d" if (_uchg or 0) >= 0 else "#b91c1c"
+            _sz_label  = _ustk.get("size", "")
+            _sz_col    = _SIZE_COLOR.get(_sz_label, "#1e40af")
+            with _cols[_ui % 2]:
+                st.markdown(
+                    f"""<div style="border:1px solid #dbeafe;border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#f8faff">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <span style="font-weight:700;font-size:15px">{_ustk['name']}</span>
+    <div style="display:flex;gap:4px;align-items:center">
+      <span style="background:{_sz_col};color:#fff;font-size:11px;padding:2px 7px;border-radius:10px">{_sz_label}</span>
+      <span style="background:#1e40af;color:#fff;font-size:11px;padding:2px 7px;border-radius:10px">{_utk}</span>
+    </div>
+  </div>
+  <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
+    <span>현재가 <b>{_ulast_str}</b></span>
+    <span style="color:{_uchg_col}"><b>{_uchg_str}</b></span>
+  </div>
+  <div style="font-size:12px;color:#374151;line-height:1.5">{_ustk.get('thesis','')}</div>
+</div>""",
+                    unsafe_allow_html=True,
+                )
+        _chart_opts = [s["ticker"] for s in us_stks]
+        _chart_tk = st.selectbox(
+            "차트 조회",
+            options=_chart_opts,
+            format_func=lambda t, _s=us_stks: next((s["name"] for s in _s if s["ticker"] == t), t),
+            key=f"us_chart_{key_prefix}",
+        )
+        if _chart_tk:
+            _chart_nm = next((s["name"] for s in us_stks if s["ticker"] == _chart_tk), _chart_tk)
+            _render_us_chart(_chart_tk, _chart_nm, key_prefix=key_prefix)
+
+    def _render_sector_stage_tabs(kr_stocks: list[dict], us_stocks: list[dict], stage_key: str) -> None:
+        """국내/미국 탭 → 대형주/중소형(저평가·고성장) 서브탭 구조 렌더링."""
+        _kr_tab, _us_tab = st.tabs(["🇰🇷 국내 관련주", "🇺🇸 미국 관련주"])
+        with _kr_tab:
+            _kr_lg = [s for s in kr_stocks if s.get("size") == "대형"]
+            _kr_sm = [s for s in kr_stocks if s.get("size") in ("중형", "소형")]
+            _kr_lg_t, _kr_sm_t = st.tabs(["🏢 대형주", "🚀 중소형 (저평가·고성장)"])
+            with _kr_lg_t:
+                _render_stock_cards_and_table(_kr_lg, f"{stage_key}_kr_lg")
+            with _kr_sm_t:
+                _render_stock_cards_and_table(_kr_sm, f"{stage_key}_kr_sm")
+        with _us_tab:
+            _us_lg = [s for s in us_stocks if s.get("size") == "대형"]
+            _us_sm = [s for s in us_stocks if s.get("size") in ("중형", "소형")]
+            _us_lg_t, _us_sm_t = st.tabs(["🏢 대형주", "🚀 중소형 (저평가·고성장)"])
+            with _us_lg_t:
+                _render_us_cards_section(_us_lg, f"{stage_key}_us_lg")
+            with _us_sm_t:
+                _render_us_cards_section(_us_sm, f"{stage_key}_us_sm")
+
     _future_sub_tabs = st.tabs(["⚡ AI 전력 인프라", "🛡️ AI 보안"])
 
     # ── ① AI 전력 인프라 ─────────────────────────────────────────────────────────
@@ -1623,51 +1695,11 @@ with _tab_watch:
                 with _st_tab:
                     st.caption(f"**{_stage['description']}**")
                     st.markdown("")
-                    _kr_tab, _us_tab = st.tabs(["🇰🇷 국내 관련주", "🇺🇸 미국 관련주"])
-                    with _kr_tab:
-                        _render_stock_cards_and_table(_stage["stocks"], f"aip_{_stage['key']}")
-                    with _us_tab:
-                        _us_stks = _stage.get("us_stocks", [])
-                        if not _us_stks:
-                            st.info("미국 관련주 데이터가 없습니다.")
-                        elif not _YF_OK:
-                            st.warning("yfinance 미설치 — `pip install yfinance` 후 재시작하세요.")
-                        else:
-                            _us_cols = st.columns(2)
-                            _us_sel_state_key = f"aip_us_sel_{_stage['key']}"
-                            for _ui, _ustk in enumerate(_us_stks):
-                                _utk = _ustk["ticker"]
-                                _upd = _yf_price(_utk)
-                                _ulast = _upd.get("last")
-                                _uchg  = _upd.get("chg")
-                                _ucur  = _upd.get("currency", "USD")
-                                _ulast_str = f"{_ucur} {_ulast:,.2f}" if _ulast else "—"
-                                _uchg_str  = f"{_uchg:+.2f}%" if _uchg is not None else "—"
-                                _uchg_col  = "#15803d" if (_uchg or 0) >= 0 else "#b91c1c"
-                                with _us_cols[_ui % 2]:
-                                    st.markdown(
-                                        f"""<div style="border:1px solid #dbeafe;border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#f8faff">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-    <span style="font-weight:700;font-size:15px">{_ustk['name']}</span>
-    <span style="background:#1e40af;color:#fff;font-size:11px;padding:2px 7px;border-radius:10px">{_utk}</span>
-  </div>
-  <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
-    <span>현재가 <b>{_ulast_str}</b></span>
-    <span style="color:{_uchg_col}"><b>{_uchg_str}</b></span>
-  </div>
-  <div style="font-size:12px;color:#374151;line-height:1.5">{_ustk.get('thesis','')}</div>
-</div>""",
-                                        unsafe_allow_html=True,
-                                    )
-                            _us_chart_ticker = st.selectbox(
-                                "차트 조회",
-                                options=[s["ticker"] for s in _us_stks],
-                                format_func=lambda t: next((s["name"] for s in _us_stks if s["ticker"] == t), t),
-                                key=f"aip_us_chart_{_stage['key']}",
-                            )
-                            if _us_chart_ticker:
-                                _us_chart_name = next((s["name"] for s in _us_stks if s["ticker"] == _us_chart_ticker), _us_chart_ticker)
-                                _render_us_chart(_us_chart_ticker, _us_chart_name, key_prefix=f"aip_{_stage['key']}")
+                    _render_sector_stage_tabs(
+                        _stage["stocks"],
+                        _stage.get("us_stocks", []),
+                        f"aip_{_stage['key']}",
+                    )
 
                     with st.expander(f"✏️ {_stage['name']} 단계 종목 편집"):
                         st.markdown("**종목 삭제**")
@@ -1705,59 +1737,21 @@ with _tab_watch:
         else:
             st.caption(
                 f"**{_asec.get('description', '')}**  \n"
-                f"최종 수정: {_asec.get('last_updated', '—')} | 총 {sum(len(g['stocks']) for g in _asec.get('groups', []))}개 종목"
+                f"최종 수정: {_asec.get('last_updated', '—')} | 총 {sum(len(s['stocks']) for s in _asec.get('stages', []))}개 종목"
             )
-            _sec_group_tabs = st.tabs([
-                f"{g['emoji']} {g['name']}" for g in _asec.get("groups", [])
+            _sec_stage_tabs = st.tabs([
+                f"{s['emoji']} {s['stage']}단계: {s['name']}"
+                for s in _asec.get("stages", [])
             ])
-            for _sg_tab, _grp in zip(_sec_group_tabs, _asec.get("groups", [])):
-                with _sg_tab:
-                    st.caption(f"**{_grp['description']}**")
+            for _sst_tab, _sstage in zip(_sec_stage_tabs, _asec.get("stages", [])):
+                with _sst_tab:
+                    st.caption(f"**{_sstage['description']}**")
                     st.markdown("")
-                    _sec_kr_tab, _sec_us_tab = st.tabs(["🇰🇷 국내 관련주", "🇺🇸 미국 관련주"])
-                    with _sec_kr_tab:
-                        _render_stock_cards_and_table(_grp["stocks"], f"aisec_{_grp['group_key']}")
-                    with _sec_us_tab:
-                        _sec_us_stks = _grp.get("us_stocks", [])
-                        if not _sec_us_stks:
-                            st.info("미국 관련주 데이터가 없습니다.")
-                        elif not _YF_OK:
-                            st.warning("yfinance 미설치 — `pip install yfinance` 후 재시작하세요.")
-                        else:
-                            _sec_us_cols = st.columns(2)
-                            for _sui, _sustk in enumerate(_sec_us_stks):
-                                _sutk = _sustk["ticker"]
-                                _supd = _yf_price(_sutk)
-                                _sulast = _supd.get("last")
-                                _suchg  = _supd.get("chg")
-                                _sucur  = _supd.get("currency", "USD")
-                                _sulast_str = f"{_sucur} {_sulast:,.2f}" if _sulast else "—"
-                                _suchg_str  = f"{_suchg:+.2f}%" if _suchg is not None else "—"
-                                _suchg_col  = "#15803d" if (_suchg or 0) >= 0 else "#b91c1c"
-                                with _sec_us_cols[_sui % 2]:
-                                    st.markdown(
-                                        f"""<div style="border:1px solid #dbeafe;border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#f8faff">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-    <span style="font-weight:700;font-size:15px">{_sustk['name']}</span>
-    <span style="background:#1e40af;color:#fff;font-size:11px;padding:2px 7px;border-radius:10px">{_sutk}</span>
-  </div>
-  <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
-    <span>현재가 <b>{_sulast_str}</b></span>
-    <span style="color:{_suchg_col}"><b>{_suchg_str}</b></span>
-  </div>
-  <div style="font-size:12px;color:#374151;line-height:1.5">{_sustk.get('thesis','')}</div>
-</div>""",
-                                        unsafe_allow_html=True,
-                                    )
-                            _sec_us_chart_ticker = st.selectbox(
-                                "차트 조회",
-                                options=[s["ticker"] for s in _sec_us_stks],
-                                format_func=lambda t: next((s["name"] for s in _sec_us_stks if s["ticker"] == t), t),
-                                key=f"aisec_us_chart_{_grp['group_key']}",
-                            )
-                            if _sec_us_chart_ticker:
-                                _sec_us_chart_name = next((s["name"] for s in _sec_us_stks if s["ticker"] == _sec_us_chart_ticker), _sec_us_chart_ticker)
-                                _render_us_chart(_sec_us_chart_ticker, _sec_us_chart_name, key_prefix=f"aisec_{_grp['group_key']}")
+                    _render_sector_stage_tabs(
+                        _sstage["stocks"],
+                        _sstage.get("us_stocks", []),
+                        f"aisec_{_sstage['key']}",
+                    )
 
     st.divider()
 
