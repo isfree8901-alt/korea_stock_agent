@@ -277,8 +277,8 @@ def _render_us_chart(ticker: str, name: str, key_prefix: str = "") -> None:
         _uf.add_trace(go.Candlestick(
             x=_u_hist["Date"], open=_u_hist["Open"], high=_u_hist["High"],
             low=_u_hist["Low"], close=_u_hist["Close"], name=name,
-            increasing_line_color="#15803d", decreasing_line_color="#b91c1c",
-            increasing_fillcolor="#15803d", decreasing_fillcolor="#b91c1c",
+            increasing_line_color="#b91c1c", decreasing_line_color="#1d4ed8",
+            increasing_fillcolor="#b91c1c", decreasing_fillcolor="#1d4ed8",
         ), row=1, col=1)
     else:
         _uf.add_trace(go.Scatter(x=_u_hist["Date"], y=_u_hist["Close"], mode="lines",
@@ -292,8 +292,8 @@ def _render_us_chart(ticker: str, name: str, key_prefix: str = "") -> None:
                                       mode="lines", name=f"MA{_ud}",
                                       line=dict(color=_uc, width=1.5)), row=1, col=1)
     if _has_vol:
-        _uvc = ["#15803d" if (_has_ohlc and _u_hist["Close"].iloc[i] >= _u_hist["Open"].iloc[i])
-                else "#b91c1c" for i in range(len(_u_hist))]
+        _uvc = ["#b91c1c" if (_has_ohlc and _u_hist["Close"].iloc[i] >= _u_hist["Open"].iloc[i])
+                else "#1d4ed8" for i in range(len(_u_hist))]
         _uf.add_trace(go.Bar(x=_u_hist["Date"], y=_u_hist["Volume"],
                               marker_color=_uvc, showlegend=False), row=2, col=1)
         _uf.update_yaxes(title_text="거래량", tickformat=".2s", row=2, col=1)
@@ -642,8 +642,13 @@ with st.sidebar:
 # ─── 헤더 ────────────────────────────────────────────────────────────────────
 
 st.title("📈 Korea Stock Agent — 섹터 리밸런싱 트래커")
-_now_kst = datetime.now(KST)
-st.caption(f"기준일: {date.today().strftime('%Y-%m-%d')} | 갱신: {_now_kst.strftime('%H:%M KST')}")
+_pipeline_mtime = max(
+    (datetime.fromtimestamp((OUTPUT_DIR / fname).stat().st_mtime, tz=KST)
+     for _, fname in STEP_FILES if (OUTPUT_DIR / fname).exists()),
+    default=None,
+)
+_mtime_str = _pipeline_mtime.strftime("%m/%d %H:%M KST") if _pipeline_mtime else "—"
+st.caption(f"기준일: {date.today().strftime('%Y-%m-%d')} | 파이프라인 마지막 실행: {_mtime_str}")
 
 # ─── How to Use ───────────────────────────────────────────────────────────────
 
@@ -1031,8 +1036,8 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
         fig.add_trace(go.Candlestick(
             x=df["Date"], open=df["Open"], high=df["High"],
             low=df["Low"], close=df["Close"], name=name,
-            increasing_line_color="#15803d", decreasing_line_color="#b91c1c",
-            increasing_fillcolor="#15803d", decreasing_fillcolor="#b91c1c",
+            increasing_line_color="#b91c1c", decreasing_line_color="#1d4ed8",
+            increasing_fillcolor="#b91c1c", decreasing_fillcolor="#1d4ed8",
         ), row=1, col=1)
     else:
         fig.add_trace(go.Scatter(x=df["Date"], y=df["Close"], mode="lines", name=name,
@@ -1161,7 +1166,7 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
     # ── 7. 거래량 ─────────────────────────────────────────────────────────────
     if has_vol:
         _vol_c = [
-            "#15803d" if (has_ohlc and df["Close"].iloc[i] >= df["Open"].iloc[i]) else "#b91c1c"
+            "#b91c1c" if (has_ohlc and df["Close"].iloc[i] >= df["Open"].iloc[i]) else "#1d4ed8"
             for i in range(len(df))
         ]
         fig.add_trace(go.Bar(
