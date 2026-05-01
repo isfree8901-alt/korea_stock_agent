@@ -1388,7 +1388,7 @@ with _tab_watch:
             close = m.get("close") or 0
             c1d   = m.get("change_rate")
             target = w.get("target_price") or 0
-            gap    = round((target / close - 1) * 100, 2) if close and target else None
+            gap    = round((target / close - 1) * 100, 1) if close and target else None
             return {
                 "_ticker": tkr, "_name": w["name"],
                 "_close": close, "_chg1d": c1d,
@@ -1426,7 +1426,7 @@ with _tab_watch:
             "티커":     [r["_ticker"]  for r in _wl_rows],
             "그룹":     [r["_group"]   for r in _wl_rows],
             "현재가":   [f"₩{int(r['_close']):,}" if r["_close"] else "—" for r in _wl_rows],
-            "전일(%)":  [round(r["_chg1d"], 2) if r["_chg1d"] is not None else None for r in _wl_rows],
+            "전일(%)":  [round(r["_chg1d"], 1) if r["_chg1d"] is not None else None for r in _wl_rows],
             "목표가":   [f"₩{int(r['_target']):,}" if r["_target"] else "—" for r in _wl_rows],
             "목표괴리(%)": [r["_gap"] for r in _wl_rows],
             "메모":     [r["_note"]    for r in _wl_rows],
@@ -1798,7 +1798,7 @@ with _tab_watch:
                 _u_chg    = _upd.get("chg")
                 _u_cur    = _upd.get("currency", "USD")
                 _u_target = _uw.get("target_price") or 0.0
-                _u_gap    = round((_u_target / _u_last - 1) * 100, 2) if _u_last and _u_target else None
+                _u_gap    = round((_u_target / _u_last - 1) * 100, 1) if _u_last and _u_target else None
                 _us_rows.append({
                     "_ticker":  _utk, "_name": _uw["name"],
                     "_last":    _u_last, "_chg":  _u_chg, "_cur": _u_cur,
@@ -1819,7 +1819,7 @@ with _tab_watch:
                 "종목명":      [r["_name"]   for r in _us_rows],
                 "티커":        [r["_ticker"] for r in _us_rows],
                 "현재가":      [f"{r['_cur']} {r['_last']:,.2f}" if r["_last"] else "—" for r in _us_rows],
-                "전일(%)":     [round(r["_chg"], 2) if r["_chg"] is not None else None for r in _us_rows],
+                "전일(%)":     [round(r["_chg"], 1) if r["_chg"] is not None else None for r in _us_rows],
                 "목표가":      [f"{r['_cur']} {r['_target']:,.2f}" if r["_target"] else "—" for r in _us_rows],
                 "목표괴리(%)": [r["_gap"] for r in _us_rows],
                 "메모":        [r["_note"]   for r in _us_rows],
