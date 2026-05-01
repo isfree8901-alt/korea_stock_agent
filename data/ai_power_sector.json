@@ -34,6 +34,28 @@
           "size": "소형",
           "thesis": "원전 계측·제어 시스템 1차 벤더. 두산에너빌리티·한수원 공급. 시총 대비 원전 수주 레버리지 가장 큰 소형 직접 수혜주."
         }
+      ],
+      "us_stocks": [
+        {
+          "ticker": "CEG",
+          "name": "Constellation Energy",
+          "thesis": "미국 최대 원전 운영사(21기). Microsoft와 Three Mile Island 재가동 계약 체결 — AI 전력 수요·원전 르네상스 최대 수혜주."
+        },
+        {
+          "ticker": "VST",
+          "name": "Vistra Energy",
+          "thesis": "미국 최대 민간 전력 생산사. 원전 재가동 + 천연가스 발전 포트폴리오. 데이터센터 직접 PPA(전력구매계약) 확대."
+        },
+        {
+          "ticker": "GEV",
+          "name": "GE Vernova",
+          "thesis": "가스터빈·풍력·그리드 솔루션 종합. GE 에너지 분사 후 AI 전력 인프라 투자 최대 수혜. 발전 설비 수주 잔고 사상 최고."
+        },
+        {
+          "ticker": "NEE",
+          "name": "NextEra Energy",
+          "thesis": "미국 재생에너지 1위(풍력·태양광). AI 데이터센터 장기 PPA 수주 급증 — 청정 전력 수요 직접 수혜."
+        }
       ]
     },
     {
@@ -66,6 +88,28 @@
           "ticker": "103590",
           "size": "소형",
           "thesis": "초고압 전력 케이블·변압기 전문. HD현대일렉트릭 1차 협력사 위치 + 직접 수주 병행. 데이터센터 신설 지역 배전 케이블 수요 직결."
+        }
+      ],
+      "us_stocks": [
+        {
+          "ticker": "ETN",
+          "name": "Eaton Corporation",
+          "thesis": "전력 관리·배전 장비 글로벌 1위. 데이터센터 전력 분배 수요 폭발 — HD현대일렉트릭의 미국 대형주 버전. 수주 잔고 급증."
+        },
+        {
+          "ticker": "VRT",
+          "name": "Vertiv Holdings",
+          "thesis": "데이터센터 전력·냉각 인프라 전문. UPS·전력 분배·액침 냉각 시스템. AI 서버 전력 밀도 증가 직접 수혜 — 매출 성장률 30%+."
+        },
+        {
+          "ticker": "HUBB",
+          "name": "Hubbell",
+          "thesis": "전력망 커넥터·장비 전문. 미국 그리드 업그레이드 핵심 공급사. 일진전기·제룡전기의 미국 대형주 버전."
+        },
+        {
+          "ticker": "PWR",
+          "name": "Quanta Services",
+          "thesis": "미국 최대 전력망 시공·유지보수사. 그리드 투자 확대 시 시공 수주 폭증 — AI 전력 인프라 구축 실행 단계 직접 수혜."
         }
       ]
     },
@@ -100,6 +144,23 @@
           "size": "소형",
           "thesis": "황산니켈(ESS 양극재 원료) 국내 유일 생산사. ESS 밸류체인 최상단 소재. 시가총액 대비 소재 독점성 프리미엄 미반영 — 저평가 직접 수혜 후보."
         }
+      ],
+      "us_stocks": [
+        {
+          "ticker": "FLNC",
+          "name": "Fluence Energy",
+          "thesis": "유틸리티급 그리드 ESS 글로벌 Top3. AES·Siemens Energy 합작사. 재생에너지 연계 대형 ESS 수주 급증 — 삼성SDI의 미국 상장 경쟁사."
+        },
+        {
+          "ticker": "BEP",
+          "name": "Brookfield Renewable",
+          "thesis": "글로벌 재생에너지 + ESS 복합 운영사. AI 데이터센터와 대규모 장기 전력 공급 계약(PPA) 확대. 안정적 현금 흐름 + 성장성 겸비."
+        },
+        {
+          "ticker": "AMRC",
+          "name": "Ameresco",
+          "thesis": "에너지 효율화·배터리 저장 솔루션. 공공·데이터센터 ESS 통합 설계·시공. 중소형 고성장 ESS 플레이어."
+        }
       ]
     },
     {
@@ -132,6 +193,28 @@
           "ticker": "012690",
           "size": "소형",
           "thesis": "데이터센터·반도체 공장 전기·기계 설비(M&E) 전문 시공사. 데이터센터 신설 붐 → 직접 시공 수주 급증. 건설사와 달리 분양 리스크 없는 B2B 수주형."
+        }
+      ],
+      "us_stocks": [
+        {
+          "ticker": "ITRI",
+          "name": "Itron",
+          "thesis": "스마트미터·그리드 IoT 솔루션 미국 1위. AMI(자동 검침 인프라) 공급사 — 누리텔레콤의 미국 대형주 버전. 미국 그리드 현대화 수혜."
+        },
+        {
+          "ticker": "EQIX",
+          "name": "Equinix",
+          "thesis": "글로벌 데이터센터 1위(REIT). 전력 수요 관리·그린 에너지 조달 핵심. AI 서버 수요 급증으로 임차율·임대료 동반 상승."
+        },
+        {
+          "ticker": "DLR",
+          "name": "Digital Realty",
+          "thesis": "글로벌 데이터센터 REIT 2위. 하이퍼스케일 AI 인프라 확장의 직접 수혜. 전력 용량 선점 경쟁에서 유리한 입지."
+        },
+        {
+          "ticker": "EMR",
+          "name": "Emerson Electric",
+          "thesis": "산업 자동화·전력 관리 솔루션 글로벌 대형사. 데이터센터 전력 제어·냉각 자동화 수요 수혜. 비츠로시스의 미국 대형주 버전."
         }
       ]
     }

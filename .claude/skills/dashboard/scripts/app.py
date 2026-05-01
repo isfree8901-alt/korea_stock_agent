@@ -860,6 +860,53 @@ k3.metric("오늘 신규편입", f"{len(all_new)}종목")
 k4.metric("오늘 제외", f"{len(all_removed)}종목")
 k5.metric("재무비율 산출", f"{per_ok}종목", help="PER 계산 가능 종목 수")
 
+# ─── 글로벌 시장 지수 ─────────────────────────────────────────────────────────
+
+_IDX_TICKERS = [
+    ("^KS11",  "KOSPI",    "🇰🇷"),
+    ("^KQ11",  "KOSDAQ",   "🇰🇷"),
+    ("^GSPC",  "S&P 500",  "🇺🇸"),
+    ("^IXIC",  "NASDAQ",   "🇺🇸"),
+    ("^DJI",   "DOW",      "🇺🇸"),
+]
+
+@st.cache_data(show_spinner=False, ttl=300)
+def _fetch_indices() -> list[dict]:
+    if not _YF_OK:
+        return []
+    results = []
+    for tkr, label, flag in _IDX_TICKERS:
+        try:
+            fi = _yf.Ticker(tkr).fast_info
+            last = getattr(fi, "last_price",     None)
+            prev = getattr(fi, "previous_close", None)
+            chg  = (last / prev - 1) * 100 if last and prev and prev != 0 else None
+            results.append({"label": label, "flag": flag, "last": last, "chg": chg})
+        except Exception:
+            results.append({"label": label, "flag": flag, "last": None, "chg": None})
+    return results
+
+_idx_data = _fetch_indices()
+if _idx_data:
+    _idx_cols = st.columns(len(_idx_data))
+    for _ic, _id in enumerate(_idx_data):
+        _ilast = _id["last"]
+        _ichg  = _id["chg"]
+        _icolor = "#15803d" if (_ichg or 0) >= 0 else "#b91c1c"
+        _ichg_str = f"{_ichg:+.2f}%" if _ichg is not None else "—"
+        _ilast_str = f"{_ilast:,.2f}" if _ilast else "—"
+        with _idx_cols[_ic]:
+            st.markdown(
+                f"""<div style="background:{'#f0fdf4' if (_ichg or 0)>=0 else '#fef2f2'};
+border:1px solid {'#86efac' if (_ichg or 0)>=0 else '#fca5a5'};border-radius:8px;
+padding:8px 12px;text-align:center">
+  <div style="font-size:12px;color:#6b7280">{_id['flag']} {_id['label']}</div>
+  <div style="font-size:17px;font-weight:700;color:#111">{_ilast_str}</div>
+  <div style="font-size:13px;font-weight:700;color:{_icolor}">{_ichg_str}</div>
+</div>""",
+                unsafe_allow_html=True,
+            )
+
 st.divider()
 
 
@@ -1571,7 +1618,51 @@ with _tab_watch:
                 with _st_tab:
                     st.caption(f"**{_stage['description']}**")
                     st.markdown("")
-                    _render_stock_cards_and_table(_stage["stocks"], f"aip_{_stage['key']}")
+                    _kr_tab, _us_tab = st.tabs(["🇰🇷 국내 관련주", "🇺🇸 미국 관련주"])
+                    with _kr_tab:
+                        _render_stock_cards_and_table(_stage["stocks"], f"aip_{_stage['key']}")
+                    with _us_tab:
+                        _us_stks = _stage.get("us_stocks", [])
+                        if not _us_stks:
+                            st.info("미국 관련주 데이터가 없습니다.")
+                        elif not _YF_OK:
+                            st.warning("yfinance 미설치 — `pip install yfinance` 후 재시작하세요.")
+                        else:
+                            _us_cols = st.columns(2)
+                            _us_sel_state_key = f"aip_us_sel_{_stage['key']}"
+                            for _ui, _ustk in enumerate(_us_stks):
+                                _utk = _ustk["ticker"]
+                                _upd = _yf_price(_utk)
+                                _ulast = _upd.get("last")
+                                _uchg  = _upd.get("chg")
+                                _ucur  = _upd.get("currency", "USD")
+                                _ulast_str = f"{_ucur} {_ulast:,.2f}" if _ulast else "—"
+                                _uchg_str  = f"{_uchg:+.2f}%" if _uchg is not None else "—"
+                                _uchg_col  = "#15803d" if (_uchg or 0) >= 0 else "#b91c1c"
+                                with _us_cols[_ui % 2]:
+                                    st.markdown(
+                                        f"""<div style="border:1px solid #dbeafe;border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#f8faff">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <span style="font-weight:700;font-size:15px">{_ustk['name']}</span>
+    <span style="background:#1e40af;color:#fff;font-size:11px;padding:2px 7px;border-radius:10px">{_utk}</span>
+  </div>
+  <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
+    <span>현재가 <b>{_ulast_str}</b></span>
+    <span style="color:{_uchg_col}"><b>{_uchg_str}</b></span>
+  </div>
+  <div style="font-size:12px;color:#374151;line-height:1.5">{_ustk.get('thesis','')}</div>
+</div>""",
+                                        unsafe_allow_html=True,
+                                    )
+                            _us_chart_ticker = st.selectbox(
+                                "차트 조회",
+                                options=[s["ticker"] for s in _us_stks],
+                                format_func=lambda t: next((s["name"] for s in _us_stks if s["ticker"] == t), t),
+                                key=f"aip_us_chart_{_stage['key']}",
+                            )
+                            if _us_chart_ticker:
+                                _us_chart_name = next((s["name"] for s in _us_stks if s["ticker"] == _us_chart_ticker), _us_chart_ticker)
+                                _render_us_chart(_us_chart_ticker, _us_chart_name, key_prefix=f"aip_{_stage['key']}")
 
                     with st.expander(f"✏️ {_stage['name']} 단계 종목 편집"):
                         st.markdown("**종목 삭제**")
@@ -1618,7 +1709,50 @@ with _tab_watch:
                 with _sg_tab:
                     st.caption(f"**{_grp['description']}**")
                     st.markdown("")
-                    _render_stock_cards_and_table(_grp["stocks"], f"aisec_{_grp['group_key']}")
+                    _sec_kr_tab, _sec_us_tab = st.tabs(["🇰🇷 국내 관련주", "🇺🇸 미국 관련주"])
+                    with _sec_kr_tab:
+                        _render_stock_cards_and_table(_grp["stocks"], f"aisec_{_grp['group_key']}")
+                    with _sec_us_tab:
+                        _sec_us_stks = _grp.get("us_stocks", [])
+                        if not _sec_us_stks:
+                            st.info("미국 관련주 데이터가 없습니다.")
+                        elif not _YF_OK:
+                            st.warning("yfinance 미설치 — `pip install yfinance` 후 재시작하세요.")
+                        else:
+                            _sec_us_cols = st.columns(2)
+                            for _sui, _sustk in enumerate(_sec_us_stks):
+                                _sutk = _sustk["ticker"]
+                                _supd = _yf_price(_sutk)
+                                _sulast = _supd.get("last")
+                                _suchg  = _supd.get("chg")
+                                _sucur  = _supd.get("currency", "USD")
+                                _sulast_str = f"{_sucur} {_sulast:,.2f}" if _sulast else "—"
+                                _suchg_str  = f"{_suchg:+.2f}%" if _suchg is not None else "—"
+                                _suchg_col  = "#15803d" if (_suchg or 0) >= 0 else "#b91c1c"
+                                with _sec_us_cols[_sui % 2]:
+                                    st.markdown(
+                                        f"""<div style="border:1px solid #dbeafe;border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#f8faff">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+    <span style="font-weight:700;font-size:15px">{_sustk['name']}</span>
+    <span style="background:#1e40af;color:#fff;font-size:11px;padding:2px 7px;border-radius:10px">{_sutk}</span>
+  </div>
+  <div style="display:flex;gap:16px;font-size:13px;margin-bottom:8px">
+    <span>현재가 <b>{_sulast_str}</b></span>
+    <span style="color:{_suchg_col}"><b>{_suchg_str}</b></span>
+  </div>
+  <div style="font-size:12px;color:#374151;line-height:1.5">{_sustk.get('thesis','')}</div>
+</div>""",
+                                        unsafe_allow_html=True,
+                                    )
+                            _sec_us_chart_ticker = st.selectbox(
+                                "차트 조회",
+                                options=[s["ticker"] for s in _sec_us_stks],
+                                format_func=lambda t: next((s["name"] for s in _sec_us_stks if s["ticker"] == t), t),
+                                key=f"aisec_us_chart_{_grp['group_key']}",
+                            )
+                            if _sec_us_chart_ticker:
+                                _sec_us_chart_name = next((s["name"] for s in _sec_us_stks if s["ticker"] == _sec_us_chart_ticker), _sec_us_chart_ticker)
+                                _render_us_chart(_sec_us_chart_ticker, _sec_us_chart_name, key_prefix=f"aisec_{_grp['group_key']}")
 
     st.divider()
 

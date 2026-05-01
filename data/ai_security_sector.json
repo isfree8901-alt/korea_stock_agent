@@ -27,6 +27,23 @@
           "size": "대형",
           "thesis": "AI CCTV·클라우드 보안 서비스(KT Cloud Security) 확장. 공공·기업 클라우드 마이그레이션 보안 수요 직접 수혜. 통신 인프라 기반 보안 번들 영업력 강점."
         }
+      ],
+      "us_stocks": [
+        {
+          "ticker": "MSFT",
+          "name": "Microsoft",
+          "thesis": "Azure 클라우드 + Microsoft Defender 보안 플랫폼 통합. AI Copilot for Security 출시 — 통신·클라우드 보안 결합의 미국 대형주 버전."
+        },
+        {
+          "ticker": "GOOGL",
+          "name": "Alphabet (Google)",
+          "thesis": "Google Cloud Security + Mandiant 인수. AI 기반 위협 인텔리전스·클라우드 보안 플랫폼 강화 — KT Cloud 보안과 동일 포지션의 글로벌 No.1."
+        },
+        {
+          "ticker": "CSCO",
+          "name": "Cisco Systems",
+          "thesis": "네트워크 보안·방화벽·XDR 종합 대형사. Splunk 인수로 SIEM 시장 강화 — SK텔레콤 보안망 사업의 미국 인프라 대형주 버전."
+        }
       ]
     },
     {
@@ -64,6 +81,28 @@
           "ticker": "242040",
           "size": "소형",
           "thesis": "클라우드 관리형 보안 플랫폼(Cloudit). AI 인프라 클라우드 마이그레이션 급증 → 클라우드 보안 수요 직결. 저PER 저평가 구간, 공공 클라우드 전환 정책 수혜."
+        }
+      ],
+      "us_stocks": [
+        {
+          "ticker": "CRWD",
+          "name": "CrowdStrike",
+          "thesis": "AI 기반 엔드포인트·클라우드 보안 글로벌 1위. Falcon 플랫폼 — 안랩의 미국 대형주 버전. AI 위협 탐지 시장 급성장 직접 수혜."
+        },
+        {
+          "ticker": "PANW",
+          "name": "Palo Alto Networks",
+          "thesis": "차세대 방화벽·SASE·AI 보안 플랫폼 종합. 제로트러스트 아키텍처 전환 최대 수혜 — 글로벌 기업 보안 지출 확대 핵심 수혜주."
+        },
+        {
+          "ticker": "ZS",
+          "name": "Zscaler",
+          "thesis": "클라우드 네이티브 SASE·제로트러스트 보안 플랫폼. AI 클라우드 마이그레이션 보안 수요 직결 — 지니언스·나무기술의 미국 고성장 버전."
+        },
+        {
+          "ticker": "S",
+          "name": "SentinelOne",
+          "thesis": "AI 자율 위협 탐지·대응(XDR) 전문. 이글루코퍼레이션 SOC 자동화와 동일 컨셉의 미국 고성장사. 매출 성장률 30%+."
         }
       ]
     }
