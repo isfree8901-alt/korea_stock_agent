@@ -90,6 +90,7 @@ ACTION_LOG_PATH    = BASE_DIR / "data" / "action_log.json"
 ALLOC_PATH         = BASE_DIR / "data" / "asset_allocation.json"
 TRADE_NOTES_BASE   = BASE_DIR  # trade_note_manager가 BASE_DIR/data/trade_notes.json 사용
 TRADE_NOTES_GH_PATH = "data/trade_notes.json"  # GitHub 레포 내 경로
+WATCHLIST_PATH     = BASE_DIR / "data" / "watchlist.json"
 
 
 def _load_notes_smart() -> dict:
@@ -112,6 +113,51 @@ def _save_notes_smart(notes: dict) -> None:
             save_notes(notes, TRADE_NOTES_BASE)
     else:
         save_notes(notes, TRADE_NOTES_BASE)
+
+
+def _load_watchlist() -> list[dict]:
+    if "_wl_cache" not in st.session_state:
+        try:
+            st.session_state["_wl_cache"] = json.loads(WATCHLIST_PATH.read_text(encoding="utf-8")) if WATCHLIST_PATH.exists() else []
+        except Exception:
+            st.session_state["_wl_cache"] = []
+    return st.session_state["_wl_cache"]
+
+
+def _save_watchlist(items: list[dict]) -> None:
+    st.session_state["_wl_cache"] = items
+    WATCHLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    WATCHLIST_PATH.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _wl_add(ticker: str, name: str, note: str = "", target_price: int = 0, group: str = "") -> bool:
+    """관심 종목 추가. 이미 있으면 False 반환."""
+    wl = _load_watchlist()
+    if any(w["ticker"] == ticker for w in wl):
+        return False
+    wl.append({
+        "ticker": ticker, "name": name,
+        "added_date": date.today().isoformat(),
+        "note": note, "target_price": target_price, "group": group,
+    })
+    _save_watchlist(wl)
+    return True
+
+
+def _wl_remove(ticker: str) -> None:
+    wl = [w for w in _load_watchlist() if w["ticker"] != ticker]
+    _save_watchlist(wl)
+
+
+def _wl_button(ticker: str, name: str, key_suffix: str = "") -> None:
+    """테이블/카드 옆에 붙이는 ⭐ 버튼 (이미 추가됐으면 비활성)."""
+    wl = _load_watchlist()
+    already = any(w["ticker"] == ticker for w in wl)
+    label = "⭐ 추가됨" if already else "☆ 관심 추가"
+    if st.button(label, key=f"wl_btn_{ticker}_{key_suffix}", disabled=already,
+                 use_container_width=True):
+        _wl_add(ticker, name)
+        st.rerun()
 
 
 def load_alloc() -> dict:
@@ -377,6 +423,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 📌 섹션 이동")
     st.markdown(
+        '<a href="#watchlist">⭐ 관심 종목</a><br>'
         '<a href="#action-cards">📋 오늘의 액션 카드</a><br>'
         '<a href="#highlight">⭐ 향후 6개월 주목 섹터</a><br>'
         '<a href="#top10">📊 섹터별 시총 Top10</a><br>'
@@ -389,6 +436,28 @@ with st.sidebar:
         '<a href="#pipeline">🔧 파이프라인 로그</a>',
         unsafe_allow_html=True,
     )
+
+    # 사이드바 관심 종목 미니 목록
+    st.markdown("---")
+    _sb_wl = _load_watchlist()
+    if _sb_wl:
+        st.markdown("### ⭐ 관심 종목")
+        for _w in _sb_wl[:10]:
+            _tk = _w["ticker"]
+            _nm = _w["name"]
+            _c1d = market_data_raw.get(_tk, {}).get("change_rate")
+            _close_sb = market_data_raw.get(_tk, {}).get("close")
+            _c1d_str = f"{_c1d:+.2f}%" if _c1d is not None else "—"
+            _color = "#16a34a" if (_c1d or 0) >= 0 else "#dc2626"
+            st.markdown(
+                f'<div style="display:flex;justify-content:space-between;font-size:13px;'
+                f'padding:2px 0">'
+                f'<span>{_nm}</span>'
+                f'<span style="color:{_color};font-weight:600">{_c1d_str}</span></div>',
+                unsafe_allow_html=True,
+            )
+        if len(_sb_wl) > 10:
+            st.caption(f"+ {len(_sb_wl)-10}개 더")
 
     st.markdown("---")
     st.markdown("### 🔍 종목 검색")
@@ -657,7 +726,157 @@ k5.metric("재무비율 산출", f"{per_ok}종목", help="PER 계산 가능 종�
 
 st.divider()
 
-# ─── SECTION 0: 오늘의 액션 카드 ─────────────────────────────────────────────
+# ─── SECTION 0: 관심 종목 ─────────────────��───────────────────────────────────
+
+st.markdown('<a id="watchlist"></a>', unsafe_allow_html=True)
+st.header("⭐ 관심 종목")
+
+_wl_items = _load_watchlist()
+
+# 상단 컨트롤 행
+_wc1, _wc2, _wc3 = st.columns([3, 2, 2])
+with _wc3:
+    with st.popover("➕ 종목 추가", use_container_width=True):
+        _add_q = st.text_input("종목명 또는 티커", key="wl_add_query",
+                               placeholder="삼성전자, 005930")
+        _add_matches = []
+        if _add_q and market_data_raw:
+            _add_matches = [
+                (tkr, info) for tkr, info in market_data_raw.items()
+                if _add_q.lower() in info.get("name","").lower() or _add_q in tkr
+            ][:10]
+        if _add_matches:
+            _add_sel = st.selectbox("종목 선택",
+                                    [f"{info.get('name',tkr)} ({tkr})" for tkr, info in _add_matches],
+                                    key="wl_add_sel")
+            _add_idx = next((i for i, (tkr, info) in enumerate(_add_matches)
+                             if f"{info.get('name',tkr)} ({tkr})" == _add_sel), 0)
+            _add_tkr, _add_info = _add_matches[_add_idx]
+            _add_name = _add_info.get("name", _add_tkr)
+            _add_close = int(_add_info.get("close") or 0)
+            _awf1, _awf2 = st.columns(2)
+            _wl_target = _awf1.number_input("목표가(원)", value=_add_close, min_value=0, step=100, key="wl_target")
+            _wl_group  = _awf2.text_input("그룹", placeholder="반도체·AI 등", key="wl_group")
+            _wl_note   = st.text_input("메모", placeholder="관심 이유...", key="wl_note")
+            if st.button("⭐ 관심 종목 추가", use_container_width=True, key="wl_add_confirm"):
+                _ok = _wl_add(_add_tkr, _add_name, note=_wl_note,
+                               target_price=int(_wl_target), group=_wl_group)
+                if _ok:
+                    st.success(f"{_add_name} 추가됨!")
+                    st.rerun()
+                else:
+                    st.warning("이미 추가된 종목입니다.")
+
+with _wc2:
+    _wl_sort = st.selectbox("정렬", ["추가일↓", "전일등락↓", "목표괴리↓", "그룹"],
+                             key="wl_sort", label_visibility="collapsed")
+
+if not _wl_items:
+    st.info("관심 종목이 없습니다. ➕ 종목 추가 버튼으로 추가하세요.")
+else:
+    # 현재가 + 등락률 데이터 병합
+    _wl_tickers = [w["ticker"] for w in _wl_items]
+    _wl_mkt = {tkr: market_data_raw.get(tkr, {}) for tkr in _wl_tickers}
+
+    def _wl_row(w: dict) -> dict:
+        tkr = w["ticker"]
+        m   = _wl_mkt.get(tkr, {})
+        close = m.get("close") or 0
+        c1d   = m.get("change_rate")
+        target = w.get("target_price") or 0
+        gap    = round((target / close - 1) * 100, 2) if close and target else None
+        return {
+            "_ticker": tkr, "_name": w["name"],
+            "_close": close, "_chg1d": c1d,
+            "_target": target, "_gap": gap,
+            "_group": w.get("group",""),
+            "_note": w.get("note",""),
+            "_added": w.get("added_date",""),
+        }
+
+    _wl_rows = [_wl_row(w) for w in _wl_items]
+
+    # 정렬
+    if _wl_sort == "전일등락↓":
+        _wl_rows.sort(key=lambda r: (r["_chg1d"] or -999), reverse=True)
+    elif _wl_sort == "목표괴리↓":
+        _wl_rows.sort(key=lambda r: (r["_gap"] or -999), reverse=True)
+    elif _wl_sort == "그룹":
+        _wl_rows.sort(key=lambda r: r["_group"])
+    else:
+        _wl_rows.sort(key=lambda r: r["_added"], reverse=True)
+
+    # 그룹 필터
+    _wl_groups = sorted({r["_group"] for r in _wl_rows if r["_group"]})
+    with _wc1:
+        if _wl_groups:
+            _sel_grp = st.multiselect("그룹", _wl_groups, default=[],
+                                       key="wl_grp_filter", label_visibility="collapsed",
+                                       placeholder="전체 그룹")
+            if _sel_grp:
+                _wl_rows = [r for r in _wl_rows if r["_group"] in _sel_grp]
+
+    # 테이블 렌더
+    _wl_disp = pd.DataFrame({
+        "종목명":   [r["_name"]    for r in _wl_rows],
+        "티커":     [r["_ticker"]  for r in _wl_rows],
+        "그룹":     [r["_group"]   for r in _wl_rows],
+        "현재가":   [f"₩{int(r['_close']):,}" if r["_close"] else "—" for r in _wl_rows],
+        "전일(%)":  [round(r["_chg1d"], 2) if r["_chg1d"] is not None else None for r in _wl_rows],
+        "목표가":   [f"₩{int(r['_target']):,}" if r["_target"] else "—" for r in _wl_rows],
+        "목표괴리(%)": [r["_gap"] for r in _wl_rows],
+        "메모":     [r["_note"]    for r in _wl_rows],
+        "추가일":   [r["_added"]   for r in _wl_rows],
+    })
+    _wl_col_names = list(_wl_disp.columns)
+
+    def _wl_style(row):
+        styles = [""] * len(_wl_col_names)
+        _apply_chg_style(styles, _wl_col_names, "전일(%)", row["전일(%)"])
+        _apply_chg_style(styles, _wl_col_names, "목표괴리(%)", row["목표괴리(%)"])
+        return styles
+
+    _wl_styled = _wl_disp.style.apply(_wl_style, axis=1)
+    _wl_ev = st.dataframe(_wl_styled, use_container_width=True,
+                           height=min(600, 80 + len(_wl_rows) * 38),
+                           on_select="rerun", selection_mode="single-row",
+                           key="wl_tbl", hide_index=True)
+    _wl_sel = (_wl_ev.selection.rows or []) if hasattr(_wl_ev, "selection") else []
+
+    # 선택 시 차트 + 편집/삭제
+    if _wl_sel and _wl_sel[0] < len(_wl_rows):
+        _ws = _wl_rows[_wl_sel[0]]
+        _we_item = next((w for w in _wl_items if w["ticker"] == _ws["_ticker"]), None)
+        _w_exp_col1, _w_exp_col2 = st.columns([3, 1])
+        with _w_exp_col1:
+            with st.expander(f"📈 {_ws['_name']} ({_ws['_ticker']}) 차트", expanded=True):
+                _render_stock_chart(_ws["_ticker"], _ws["_name"])
+        with _w_exp_col2:
+            with st.expander("✏️ 편집 / 삭제", expanded=True):
+                if _we_item:
+                    with st.form(f"wl_edit_{_ws['_ticker']}"):
+                        _e_target = st.number_input("목표가(원)",
+                                                     value=int(_we_item.get("target_price") or 0),
+                                                     min_value=0, step=100)
+                        _e_group  = st.text_input("그룹", value=_we_item.get("group",""))
+                        _e_note   = st.text_input("메모", value=_we_item.get("note",""))
+                        _ef1, _ef2 = st.columns(2)
+                        if _ef1.form_submit_button("💾 저장", use_container_width=True):
+                            for _wi in _wl_items:
+                                if _wi["ticker"] == _ws["_ticker"]:
+                                    _wi["target_price"] = int(_e_target)
+                                    _wi["group"]  = _e_group.strip()
+                                    _wi["note"]   = _e_note.strip()
+                                    break
+                            _save_watchlist(_wl_items)
+                            st.rerun()
+                        if _ef2.form_submit_button("🗑️ 삭제", use_container_width=True):
+                            _wl_remove(_ws["_ticker"])
+                            st.rerun()
+
+st.divider()
+
+# ─── SECTION 0b: 오늘의 액션 카드 ───────────────────────────���────────────────
 
 if all_new or all_removed:
     st.markdown('<a id="action-cards"></a>', unsafe_allow_html=True)
@@ -1918,6 +2137,20 @@ if _sq and market_data_raw:
         with st.spinner("가격 데이터 조회 중..."):
             _search_rows = _build_stock_rows(_search_tickers)
         _render_stock_table(_search_rows, height=min(560, max(220, len(_search_tickers) * 38 + 60)), table_key="search")
+
+        # ── 관심 종목 빠른 추가 ──────────────────────────────────────────────────
+        _wl_now = _load_watchlist()
+        _wl_tickers_now = {w["ticker"] for w in _wl_now}
+        _not_in_wl = [(tkr, info) for tkr, info in _matches[:20] if tkr not in _wl_tickers_now]
+        if _not_in_wl:
+            st.caption("☆ 관심 종목에 추가")
+            _wl_add_cols = st.columns(min(5, len(_not_in_wl)))
+            for _ci, (tkr, info) in enumerate(_not_in_wl[:5]):
+                nm = info.get("name", tkr)
+                with _wl_add_cols[_ci]:
+                    if st.button(f"☆ {nm}", key=f"wl_srch_{tkr}", use_container_width=True):
+                        _wl_add(tkr, nm)
+                        st.rerun()
 
         # ── 트레이드 노트 빠른 추가 ──────────────────────────────────────────────
         _rank_map_s: dict[str, tuple[str, int]] = {}
