@@ -33228,18 +33228,18 @@
     ]
   },
   "115180": {
-    "eps": -880.0,
+    "eps": null,
     "per": null,
-    "pbr": 35.5,
-    "roe": -79.77,
-    "eps_growth": -8.37,
-    "revenue_growth": -23.94,
-    "debt_ratio": 58.18,
-    "period": "2025_11011",
+    "pbr": null,
+    "roe": null,
+    "eps_growth": null,
+    "revenue_growth": null,
+    "debt_ratio": null,
+    "period": null,
     "corp_name": "큐리언트",
-    "disclosure_warning": false,
+    "disclosure_warning": true,
     "missing_fields": [
-      "per(EPS 음수—적자기업)"
+      "DART 공시 데이터 없음"
     ]
   },
   "494120": {
@@ -36078,20 +36078,18 @@
     "missing_fields": []
   },
   "341170": {
-    "eps": -155.0,
+    "eps": null,
     "per": null,
     "pbr": null,
-    "roe": 46.1,
-    "eps_growth": 58.78,
+    "roe": null,
+    "eps_growth": null,
     "revenue_growth": null,
     "debt_ratio": null,
-    "period": "2025_11011",
+    "period": null,
     "corp_name": "퓨쳐메디신",
-    "disclosure_warning": false,
+    "disclosure_warning": true,
     "missing_fields": [
-      "per(EPS 음수—적자기업)",
-      "매출성장률(전기 매출 없음)",
-      "부채비율(자본잠식—자본총계 음수, 제외)"
+      "DART 공시 데이터 없음"
     ]
   },
   "220100": {
@@ -37226,18 +37224,18 @@
     ]
   },
   "065650": {
-    "eps": -57.0,
+    "eps": null,
     "per": null,
-    "pbr": 3.02,
-    "roe": -4.94,
-    "eps_growth": 99.24,
-    "revenue_growth": 32.04,
-    "debt_ratio": 369.8,
-    "period": "2025_11011",
+    "pbr": null,
+    "roe": null,
+    "eps_growth": null,
+    "revenue_growth": null,
+    "debt_ratio": null,
+    "period": null,
     "corp_name": "하이퍼코퍼레이션",
-    "disclosure_warning": false,
+    "disclosure_warning": true,
     "missing_fields": [
-      "per(EPS 음수—적자기업)"
+      "DART 공시 데이터 없음"
     ]
   },
   "066130": {
@@ -38017,18 +38015,18 @@
     "missing_fields": []
   },
   "002390": {
-    "eps": -162.0,
+    "eps": null,
     "per": null,
-    "pbr": 0.51,
-    "roe": -0.8,
-    "eps_growth": 95.76,
-    "revenue_growth": 5.48,
-    "debt_ratio": 184.11,
-    "period": "2025_11011",
+    "pbr": null,
+    "roe": null,
+    "eps_growth": null,
+    "revenue_growth": null,
+    "debt_ratio": null,
+    "period": null,
     "corp_name": "한독",
-    "disclosure_warning": false,
+    "disclosure_warning": true,
     "missing_fields": [
-      "per(EPS 음수—적자기업)"
+      "DART 공시 데이터 없음"
     ]
   },
   "256150": {
