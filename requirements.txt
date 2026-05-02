@@ -18,3 +18,4 @@ tqdm>=4.66.0
 jsonschema>=4.19.0
 pytest>=7.4.0
 yfinance>=0.2.50
+deep-translator>=1.11.4
