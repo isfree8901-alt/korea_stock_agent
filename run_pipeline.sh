@@ -68,22 +68,25 @@ if [ "$FROM_STEP" -le 2 ] && [ "$TO_STEP" -ge 2 ]; then
     echo ""
     echo "▶ STEP 2 — 분석 (순위 추적 · 재무비율 · 뉴스 테마)"
 
-    echo "  [1/6] 뉴스 중복 제거..."
+    echo "  [1/7] 뉴스 중복 제거..."
     python3 .claude/skills/news-preprocessor/scripts/deduplicate.py
 
-    echo "  [2/6] 핵심 문장 추출..."
+    echo "  [2/7] 핵심 문장 추출..."
     python3 .claude/skills/news-preprocessor/scripts/extract_sentences.py
 
-    echo "  [3/6] 섹터 감성 점수..."
+    echo "  [3/7] 섹터 감성 점수..."
     python3 .claude/skills/news-preprocessor/scripts/score_sentiment.py
 
-    echo "  [4/6] 섹터 종합 스코어카드 (감성+모멘텀+재무)..."
+    echo "  [4/7] 섹터 종합 스코어카드 (감성+모멘텀+재무)..."
     python3 .claude/skills/news-preprocessor/scripts/build_sector_scorecard.py
 
-    echo "  [5/6] 뉴스 테마 추출 → 6개월 주목 섹터..."
+    echo "  [5/7] 섹터별 기사 분류 및 전처리 (step2_news_preprocessed 갱신)..."
+    python3 .claude/skills/news-preprocessor/scripts/build_llm_input.py
+
+    echo "  [6/7] 뉴스 테마 추출 → 6개월 주목 섹터..."
     python3 .claude/skills/news-preprocessor/scripts/extract_themes.py
 
-    echo "  [6/6] 섹터별 시총 Top10 순위 추적..."
+    echo "  [7/7] 섹터별 시총 Top10 순위 추적..."
     python3 .claude/skills/portfolio-builder/scripts/track_sector_rankings.py
 
     ok "분석 완료"
