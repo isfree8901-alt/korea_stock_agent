@@ -1,234 +1,224 @@
 {
   "반도체": {
-    "article_count": 18,
+    "article_count": 13,
     "top_keywords": [
-      "엔비디아",
-      "메모리",
-      "HBM",
-      "TSMC"
+      "메모리"
     ],
-    "forward_keyword_hits": 115,
-    "risk_keyword_hits": 28,
-    "forward_ratio": 0.799,
+    "forward_keyword_hits": 53,
+    "risk_keyword_hits": 11,
+    "forward_ratio": 0.815,
     "sentiment_score": 0.442,
     "avg_change_rate": -0.1,
     "advancing_ratio": 30.4,
     "composite_score": 0.556,
-    "forward_score": 1.0,
-    "composite_6m": 0.824,
+    "forward_score": 0.912,
+    "composite_6m": 0.789,
     "highlight": true,
-    "highlight_reason": "뉴스 전망 언급 115건 | 감성 긍정 | 핵심 이슈: 엔비디아, 메모리, HBM | 상승종목비율 30%"
+    "highlight_reason": "뉴스 전망 언급 53건 | 감성 긍정 | 핵심 이슈: 메모리 | 상승종목비율 30%"
   },
   "2차전지": {
     "article_count": 2,
     "top_keywords": [
+      "배터리",
       "전기차",
-      "리튬",
-      "CATL"
+      "ESS"
     ],
-    "forward_keyword_hits": 5,
+    "forward_keyword_hits": 7,
     "risk_keyword_hits": 4,
-    "forward_ratio": 0.5,
+    "forward_ratio": 0.583,
     "sentiment_score": 0.0,
     "avg_change_rate": null,
     "advancing_ratio": null,
     "composite_score": 0.5,
-    "forward_score": 0.099,
-    "composite_6m": 0.19,
+    "forward_score": 0.652,
+    "composite_6m": 0.411,
     "highlight": false,
     "highlight_reason": ""
   },
   "바이오": {
-    "article_count": 19,
+    "article_count": 13,
     "top_keywords": [
-      "허가"
+      "유전자"
     ],
-    "forward_keyword_hits": 55,
-    "risk_keyword_hits": 26,
-    "forward_ratio": 0.671,
+    "forward_keyword_hits": 14,
+    "risk_keyword_hits": 4,
+    "forward_ratio": 0.737,
     "sentiment_score": 0.2,
     "avg_change_rate": -1.38,
     "advancing_ratio": 15.4,
     "composite_score": 0.48,
-    "forward_score": 0.614,
-    "composite_6m": 0.367,
+    "forward_score": 0.824,
+    "composite_6m": 0.451,
     "highlight": false,
     "highlight_reason": ""
   },
   "자동차": {
-    "article_count": 6,
+    "article_count": 10,
     "top_keywords": [
-      "수출",
       "전기차",
-      "현대차",
-      "플랫폼"
+      "수출",
+      "기아"
     ],
-    "forward_keyword_hits": 18,
-    "risk_keyword_hits": 5,
-    "forward_ratio": 0.75,
+    "forward_keyword_hits": 19,
+    "risk_keyword_hits": 7,
+    "forward_ratio": 0.704,
     "sentiment_score": 0.059,
     "avg_change_rate": -0.96,
     "advancing_ratio": 21.3,
     "composite_score": 0.536,
-    "forward_score": 0.852,
-    "composite_6m": 0.502,
+    "forward_score": 0.787,
+    "composite_6m": 0.476,
     "highlight": false,
     "highlight_reason": ""
   },
   "금융": {
-    "article_count": 76,
+    "article_count": 61,
     "top_keywords": [
+      "보험",
       "금리",
       "대출",
-      "보험",
       "펀드",
-      "예금"
+      "리츠"
     ],
-    "forward_keyword_hits": 184,
-    "risk_keyword_hits": 66,
-    "forward_ratio": 0.733,
+    "forward_keyword_hits": 138,
+    "risk_keyword_hits": 50,
+    "forward_ratio": 0.73,
     "sentiment_score": 0.26,
     "avg_change_rate": -1.04,
     "advancing_ratio": 18.8,
     "composite_score": 0.475,
-    "forward_score": 0.801,
-    "composite_6m": 0.517,
+    "forward_score": 0.817,
+    "composite_6m": 0.523,
     "highlight": false,
     "highlight_reason": ""
   },
   "에너지": {
-    "article_count": 25,
+    "article_count": 14,
     "top_keywords": [
-      "LNG",
       "원유",
-      "탄소중립",
-      "재생에너지",
-      "태양광"
+      "전력",
+      "수소"
     ],
-    "forward_keyword_hits": 96,
-    "risk_keyword_hits": 31,
-    "forward_ratio": 0.75,
+    "forward_keyword_hits": 25,
+    "risk_keyword_hits": 14,
+    "forward_ratio": 0.625,
     "sentiment_score": 0.304,
     "avg_change_rate": -0.95,
     "advancing_ratio": 31.6,
     "composite_score": 0.511,
-    "forward_score": 0.852,
-    "composite_6m": 0.65,
+    "forward_score": 0.699,
+    "composite_6m": 0.589,
     "highlight": true,
-    "highlight_reason": "뉴스 전망 언급 96건 | 감성 긍정 | 핵심 이슈: LNG, 원유, 탄소중립 | 상승종목비율 32%"
+    "highlight_reason": "뉴스 전망 언급 25건 | 감성 긍정 | 핵심 이슈: 원유, 전력, 수소 | 상승종목비율 32%"
   },
   "통신": {
-    "article_count": 12,
+    "article_count": 7,
     "top_keywords": [
       "AI",
-      "미디어",
+      "5G",
       "클라우드"
     ],
-    "forward_keyword_hits": 63,
-    "risk_keyword_hits": 16,
-    "forward_ratio": 0.787,
+    "forward_keyword_hits": 16,
+    "risk_keyword_hits": 7,
+    "forward_ratio": 0.667,
     "sentiment_score": 0.167,
     "avg_change_rate": -1.43,
     "advancing_ratio": 21.4,
     "composite_score": 0.445,
-    "forward_score": 0.964,
-    "composite_6m": 0.535,
+    "forward_score": 0.746,
+    "composite_6m": 0.448,
     "highlight": false,
     "highlight_reason": ""
   },
   "철강": {
     "article_count": 3,
     "top_keywords": [
-      "중국",
       "철강",
       "포스코"
     ],
-    "forward_keyword_hits": 7,
-    "risk_keyword_hits": 7,
-    "forward_ratio": 0.467,
+    "forward_keyword_hits": 1,
+    "risk_keyword_hits": 0,
+    "forward_ratio": 0.5,
     "sentiment_score": 0.333,
     "avg_change_rate": -1.27,
     "advancing_ratio": 20.3,
     "composite_score": 0.472,
-    "forward_score": 0.0,
-    "composite_6m": 0.207,
+    "forward_score": 0.559,
+    "composite_6m": 0.43,
     "highlight": false,
     "highlight_reason": ""
   },
   "화학": {
-    "article_count": 6,
+    "article_count": 2,
     "top_keywords": [
-      "친환경",
-      "석유화학",
-      "플라스틱"
+      "석유화학"
     ],
-    "forward_keyword_hits": 35,
-    "risk_keyword_hits": 18,
-    "forward_ratio": 0.648,
+    "forward_keyword_hits": 0,
+    "risk_keyword_hits": 0,
+    "forward_ratio": 0.0,
     "sentiment_score": 1.0,
     "avg_change_rate": -1.55,
     "advancing_ratio": 20.9,
     "composite_score": 0.61,
-    "forward_score": 0.545,
-    "composite_6m": 0.602,
+    "forward_score": 0.0,
+    "composite_6m": 0.384,
     "highlight": false,
     "highlight_reason": ""
   },
   "IT서비스": {
-    "article_count": 41,
+    "article_count": 25,
     "top_keywords": [
       "AI",
       "플랫폼",
-      "클라우드",
-      "빅데이터"
+      "클라우드"
     ],
-    "forward_keyword_hits": 167,
-    "risk_keyword_hits": 45,
-    "forward_ratio": 0.784,
+    "forward_keyword_hits": 59,
+    "risk_keyword_hits": 6,
+    "forward_ratio": 0.894,
     "sentiment_score": 0.5,
     "avg_change_rate": -0.87,
     "advancing_ratio": 21.3,
     "composite_score": 0.575,
-    "forward_score": 0.955,
-    "composite_6m": 0.684,
+    "forward_score": 1.0,
+    "composite_6m": 0.702,
     "highlight": true,
-    "highlight_reason": "뉴스 전망 언급 167건 | 감성 긍정 | 핵심 이슈: AI, 플랫폼, 클라우드 | 상승종목비율 21%"
+    "highlight_reason": "뉴스 전망 언급 59건 | 감성 긍정 | 핵심 이슈: AI, 플랫폼, 클라우드 | 상승종목비율 21%"
   },
   "건설": {
-    "article_count": 38,
+    "article_count": 23,
     "top_keywords": [
-      "수주",
+      "분양",
       "인프라",
-      "분양"
+      "재개발"
     ],
-    "forward_keyword_hits": 98,
-    "risk_keyword_hits": 45,
-    "forward_ratio": 0.681,
+    "forward_keyword_hits": 29,
+    "risk_keyword_hits": 11,
+    "forward_ratio": 0.707,
     "sentiment_score": 0.5,
     "avg_change_rate": -1.66,
     "advancing_ratio": 10.6,
     "composite_score": 0.446,
-    "forward_score": 0.645,
-    "composite_6m": 0.408,
+    "forward_score": 0.791,
+    "composite_6m": 0.466,
     "highlight": false,
     "highlight_reason": ""
   },
   "유통": {
-    "article_count": 15,
+    "article_count": 18,
     "top_keywords": [
       "소비",
-      "편의점",
-      "온라인"
+      "온라인",
+      "오프라인"
     ],
     "forward_keyword_hits": 23,
-    "risk_keyword_hits": 15,
-    "forward_ratio": 0.59,
+    "risk_keyword_hits": 9,
+    "forward_ratio": 0.697,
     "sentiment_score": 0.2,
     "avg_change_rate": -0.93,
     "advancing_ratio": 20.7,
     "composite_score": 0.463,
-    "forward_score": 0.37,
-    "composite_6m": 0.351,
+    "forward_score": 0.78,
+    "composite_6m": 0.514,
     "highlight": false,
     "highlight_reason": ""
   }
