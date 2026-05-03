@@ -23,7 +23,9 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import random as _random
 import streamlit as st
+import streamlit.components.v1 as _components
 from dotenv import load_dotenv
 from generate_scorecard import generate_scorecard
 from quant_screener import calc_factor_scores, enrich_price_changes
@@ -908,247 +910,129 @@ _step_total = len(STEP_FILES)
 _pipeline_health = "정상" if _step_ok_count == _step_total else f"{_step_ok_count}/{_step_total}"
 _health_color = "#4ade80" if _step_ok_count == _step_total else "#fbbf24"
 
-st.markdown(f"""
+
+
+_particle_css_dots = "".join(
+    f'<div style="position:absolute;left:{_random.randint(2,98)}%;top:{_random.randint(5,95)}%;'
+    f'width:{_random.choice([1,1,2,2,3])}px;height:{_random.choice([1,1,2,2,3])}px;'
+    f'border-radius:50%;'
+    f'background:{"rgba(56,189,248," if _random.random()>0.4 else "rgba(99,102,241,"}{round(_random.uniform(0.15,0.55),2)});'
+    f'animation:particle-float {_random.randint(6,14)}s ease-in-out infinite {_random.randint(0,8)}s;'
+    f'pointer-events:none;z-index:1"></div>'
+    for _ in range(35)
+)
+
+_components.html(f"""
 <style>
-#hero-canvas {{
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 0;
+@keyframes particle-float {{
+  0%,100% {{ transform: translateY(0) translateX(0); opacity: 0.3; }}
+  33% {{ transform: translateY(-18px) translateX(8px); opacity: 0.8; }}
+  66% {{ transform: translateY(-8px) translateX(-6px); opacity: 0.5; }}
 }}
-.hero-wrapper {{
-    position: relative;
-    overflow: hidden;
-    border-radius: 24px;
-    margin-bottom: 1.5rem;
-    background: linear-gradient(135deg, #0d1b2e 0%, #0a1628 50%, #071020 100%);
-    border: 1px solid rgba(56,189,248,0.2);
-    box-shadow: 0 0 80px rgba(56,189,248,0.08), 0 20px 60px rgba(0,0,0,0.4);
-    animation: float-up 0.6s ease both;
+@keyframes gradient-shift {{
+  0%   {{ background-position: 0% 50%; }}
+  50%  {{ background-position: 100% 50%; }}
+  100% {{ background-position: 0% 50%; }}
 }}
-.hero-grid-overlay {{
-    position: absolute; inset: 0;
-    background-image:
-        linear-gradient(rgba(56,189,248,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(56,189,248,0.04) 1px, transparent 1px);
-    background-size: 40px 40px;
-    z-index: 1;
+@keyframes float-up {{
+  from {{ opacity:0; transform:translateY(16px); }}
+  to   {{ opacity:1; transform:translateY(0); }}
 }}
-.hero-glow-orb {{
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    pointer-events: none;
-    z-index: 1;
+@keyframes glow-pulse {{
+  0%,100% {{ box-shadow: 0 0 16px rgba(56,189,248,0.2); }}
+  50%     {{ box-shadow: 0 0 36px rgba(56,189,248,0.5), 0 0 60px rgba(56,189,248,0.15); }}
 }}
-.hero-glow-orb-1 {{
-    width: 400px; height: 400px;
-    background: radial-gradient(circle, rgba(56,189,248,0.12), transparent 70%);
-    top: -100px; left: -80px;
-    animation: particle-float 8s ease-in-out infinite;
+body {{ margin:0; overflow:hidden; background:transparent; }}
+
+.hero-outer {{
+  position:relative; overflow:hidden; border-radius:20px;
+  background: linear-gradient(135deg, #0d1b2e 0%, #0a1628 50%, #071020 100%);
+  border: 1px solid rgba(56,189,248,0.22);
+  box-shadow: 0 0 80px rgba(56,189,248,0.07), 0 16px 48px rgba(0,0,0,0.45);
 }}
-.hero-glow-orb-2 {{
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, rgba(99,102,241,0.1), transparent 70%);
-    bottom: -80px; right: -60px;
-    animation: particle-float 10s ease-in-out infinite reverse;
+.hero-grid {{
+  position:absolute;inset:0;
+  background-image: linear-gradient(rgba(56,189,248,0.04) 1px,transparent 1px),
+                    linear-gradient(90deg,rgba(56,189,248,0.04) 1px,transparent 1px);
+  background-size:40px 40px; z-index:0;
 }}
-.hero-glow-orb-3 {{
-    width: 200px; height: 200px;
-    background: radial-gradient(circle, rgba(245,158,11,0.08), transparent 70%);
-    top: 50%; right: 25%;
-    animation: particle-float 12s ease-in-out infinite 2s;
+.orb {{ position:absolute; border-radius:50%; filter:blur(70px); pointer-events:none; z-index:0; }}
+.orb1 {{ width:380px;height:380px;background:radial-gradient(circle,rgba(56,189,248,0.14),transparent 70%);
+         top:-100px;left:-80px; animation:particle-float 9s ease-in-out infinite; }}
+.orb2 {{ width:260px;height:260px;background:radial-gradient(circle,rgba(99,102,241,0.11),transparent 70%);
+         bottom:-70px;right:-50px; animation:particle-float 11s ease-in-out infinite reverse; }}
+.orb3 {{ width:180px;height:180px;background:radial-gradient(circle,rgba(245,158,11,0.08),transparent 70%);
+         top:40%;right:22%; animation:particle-float 13s ease-in-out infinite 3s; }}
+.hero-inner {{
+  position:relative; z-index:2; padding:38px 44px 34px;
+  display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
 }}
-.hero-content {{
-    position: relative; z-index: 2;
-    padding: 40px 48px 36px;
+.badge {{
+  display:inline-flex; align-items:center; gap:6px;
+  background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.28);
+  border-radius:100px; padding:4px 13px;
+  font-size:11px; font-weight:700; letter-spacing:0.09em; color:#38bdf8;
+  text-transform:uppercase; margin-bottom:18px;
+  animation: float-up 0.4s ease both;
 }}
-.hero-badge {{
-    display: inline-flex; align-items: center; gap: 6px;
-    background: rgba(56,189,248,0.1);
-    border: 1px solid rgba(56,189,248,0.3);
-    border-radius: 100px;
-    padding: 5px 14px;
-    font-size: 0.73rem; font-weight: 600; letter-spacing: 0.08em;
-    color: #38bdf8; text-transform: uppercase;
-    margin-bottom: 20px;
-    animation: float-up 0.4s ease both;
-}}
-.hero-badge-dot {{
-    width: 7px; height: 7px; border-radius: 50%;
-    background: #4ade80;
-    box-shadow: 0 0 8px #4ade80;
-    animation: glow-pulse 2s ease-in-out infinite;
-}}
+.dot {{ width:7px;height:7px;border-radius:50%;background:#4ade80;
+        box-shadow:0 0 8px #4ade80; animation:glow-pulse 2s ease-in-out infinite; display:inline-block; }}
 .hero-title {{
-    font-size: clamp(2rem, 4vw, 3.2rem);
-    font-weight: 900;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-    margin: 0 0 12px;
-    background: linear-gradient(135deg, #f8fafc 0%, #38bdf8 40%, #818cf8 70%, #f8fafc 100%);
-    background-size: 300% 300%;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: gradient-shift 6s ease infinite, float-up 0.5s ease both 0.1s;
+  font-size:clamp(1.9rem,3.8vw,3.1rem); font-weight:900; line-height:1.1;
+  letter-spacing:-0.02em; margin:0 0 10px;
+  background: linear-gradient(135deg,#f8fafc 0%,#38bdf8 40%,#818cf8 70%,#f8fafc 100%);
+  background-size:300% 300%;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  animation: gradient-shift 6s ease infinite, float-up 0.5s ease both 0.1s;
 }}
-.hero-subtitle {{
-    font-size: 1rem; color: #64748b; margin: 0 0 28px;
-    animation: float-up 0.5s ease both 0.2s;
-    opacity: 0; animation-fill-mode: forwards;
+.hero-sub {{
+  font-size:0.95rem; color:#64748b; margin:0 0 26px;
+  animation:float-up 0.5s ease both 0.2s; opacity:0; animation-fill-mode:forwards;
 }}
-.hero-stats {{
-    display: flex; gap: 20px; flex-wrap: wrap;
-    animation: float-up 0.5s ease both 0.3s;
-    opacity: 0; animation-fill-mode: forwards;
+.stats {{ display:flex; gap:18px; flex-wrap:wrap;
+          animation:float-up 0.5s ease both 0.3s; opacity:0; animation-fill-mode:forwards; }}
+.stat {{ display:flex; flex-direction:column; gap:3px; }}
+.stat-label {{ font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:#475569; font-weight:700; }}
+.stat-value {{ font-size:1.05rem; font-weight:800; color:#e2e8f0; }}
+.divider {{ width:1px; background:rgba(56,189,248,0.15); align-self:stretch; margin:0 6px; }}
+.pulse {{
+  position:relative; width:76px; height:76px;
+  display:flex; align-items:center; justify-content:center;
 }}
-.hero-stat-item {{
-    display: flex; flex-direction: column; gap: 3px;
+.pulse::before,.pulse::after {{
+  content:''; position:absolute; border-radius:50%; border:2px solid rgba(56,189,248,0.3);
+  animation:glow-pulse 2s ease-in-out infinite;
 }}
-.hero-stat-label {{
-    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em;
-    color: #475569; font-weight: 600;
-}}
-.hero-stat-value {{
-    font-size: 1.1rem; font-weight: 700; color: #e2e8f0;
-}}
-.hero-stat-divider {{
-    width: 1px; background: rgba(56,189,248,0.15); align-self: stretch;
-    margin: 0 8px;
-}}
-.hero-right {{
-    display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between;
-}}
-.hero-pulse-ring {{
-    position: relative; display: inline-flex; align-items: center; justify-content: center;
-    width: 80px; height: 80px;
-}}
-.hero-pulse-ring::before, .hero-pulse-ring::after {{
-    content: ''; position: absolute;
-    border-radius: 50%; border: 2px solid rgba(56,189,248,0.3);
-    animation: glow-pulse 2s ease-in-out infinite;
-}}
-.hero-pulse-ring::before {{ width: 60px; height: 60px; }}
-.hero-pulse-ring::after {{ width: 80px; height: 80px; animation-delay: 0.5s; opacity: 0.5; }}
-.hero-icon {{ font-size: 2rem; }}
-.hero-layout {{
-    display: flex; justify-content: space-between; align-items: flex-start;
-    gap: 20px;
-}}
-@media (max-width: 768px) {{
-    .hero-content {{ padding: 28px 24px; }}
-    .hero-layout {{ flex-direction: column; }}
-    .hero-right {{ align-items: flex-start; }}
-}}
+.pulse::before {{ width:54px; height:54px; }}
+.pulse::after  {{ width:76px; height:76px; animation-delay:0.5s; opacity:0.5; }}
+.pulse-icon {{ font-size:1.9rem; position:relative; z-index:1; }}
 </style>
 
-<div class="hero-wrapper">
-    <div class="hero-grid-overlay"></div>
-    <div class="hero-glow-orb hero-glow-orb-1"></div>
-    <div class="hero-glow-orb hero-glow-orb-2"></div>
-    <div class="hero-glow-orb hero-glow-orb-3"></div>
-
-    <div class="hero-content">
-        <div class="hero-layout">
-            <div>
-                <div class="hero-badge">
-                    <div class="hero-badge-dot"></div>
-                    LIVE · KRX Analysis Platform
-                </div>
-                <h1 class="hero-title">Korea Stock Agent</h1>
-                <p class="hero-subtitle">섹터 리밸런싱 트래커 · KOSPI/KOSDAQ 투자 분석 자동화</p>
-                <div class="hero-stats">
-                    <div class="hero-stat-item">
-                        <span class="hero-stat-label">기준일</span>
-                        <span class="hero-stat-value">{_today_str}</span>
-                    </div>
-                    <div class="hero-stat-divider"></div>
-                    <div class="hero-stat-item">
-                        <span class="hero-stat-label">파이프라인</span>
-                        <span class="hero-stat-value" style="color:{_health_color}">{_pipeline_health}</span>
-                    </div>
-                    <div class="hero-stat-divider"></div>
-                    <div class="hero-stat-item">
-                        <span class="hero-stat-label">마지막 실행</span>
-                        <span class="hero-stat-value">{_mtime_str}</span>
-                    </div>
-                    <div class="hero-stat-divider"></div>
-                    <div class="hero-stat-item">
-                        <span class="hero-stat-label">모니터링 섹터</span>
-                        <span class="hero-stat-value">{len(rankings_data)}개</span>
-                    </div>
-                </div>
-            </div>
-            <div class="hero-right">
-                <div class="hero-pulse-ring">
-                    <span class="hero-icon">📈</span>
-                </div>
-            </div>
-        </div>
+<div class="hero-outer" style="height:200px">
+  <div class="hero-grid"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  {_particle_css_dots}
+  <div class="hero-inner">
+    <div>
+      <div class="badge"><span class="dot"></span> LIVE · KRX Analysis Platform</div>
+      <div class="hero-title">Korea Stock Agent</div>
+      <p class="hero-sub">섹터 리밸런싱 트래커 · KOSPI/KOSDAQ 투자 분석 자동화</p>
+      <div class="stats">
+        <div class="stat"><span class="stat-label">기준일</span><span class="stat-value">{_today_str}</span></div>
+        <div class="divider"></div>
+        <div class="stat"><span class="stat-label">파이프라인</span><span class="stat-value" style="color:{_health_color}">{_pipeline_health}</span></div>
+        <div class="divider"></div>
+        <div class="stat"><span class="stat-label">마지막 실행</span><span class="stat-value">{_mtime_str}</span></div>
+        <div class="divider"></div>
+        <div class="stat"><span class="stat-label">모니터링 섹터</span><span class="stat-value">{len(rankings_data)}개</span></div>
+      </div>
     </div>
+    <div class="pulse"><span class="pulse-icon">📈</span></div>
+  </div>
 </div>
-
-<script>
-(function() {{
-    // 파티클 배경 효과
-    const heroWrapper = document.querySelector('.hero-wrapper');
-    if (!heroWrapper) return;
-    const canvas = document.createElement('canvas');
-    canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;border-radius:24px;';
-    heroWrapper.prepend(canvas);
-
-    function resize() {{
-        canvas.width = heroWrapper.offsetWidth;
-        canvas.height = heroWrapper.offsetHeight;
-    }}
-    resize();
-    window.addEventListener('resize', resize);
-
-    const ctx = canvas.getContext('2d');
-    const particles = Array.from({{length: 60}}, () => ({{
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 1.5 + 0.3,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.4,
-        alpha: Math.random() * 0.5 + 0.1,
-        color: Math.random() > 0.5 ? '56,189,248' : '99,102,241',
-    }}));
-
-    function draw() {{
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => {{
-            p.x += p.vx; p.y += p.vy;
-            if (p.x < 0) p.x = canvas.width;
-            if (p.x > canvas.width) p.x = 0;
-            if (p.y < 0) p.y = canvas.height;
-            if (p.y > canvas.height) p.y = 0;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${{p.color}},${{p.alpha}})`;
-            ctx.fill();
-        }});
-        // 파티클 연결선
-        for (let i = 0; i < particles.length; i++) {{
-            for (let j = i + 1; j < particles.length; j++) {{
-                const dx = particles[i].x - particles[j].x;
-                const dy = particles[i].y - particles[j].y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < 80) {{
-                    ctx.beginPath();
-                    ctx.moveTo(particles[i].x, particles[i].y);
-                    ctx.lineTo(particles[j].x, particles[j].y);
-                    ctx.strokeStyle = `rgba(56,189,248,${{0.08 * (1 - dist/80)}})`;
-                    ctx.lineWidth = 0.5;
-                    ctx.stroke();
-                }}
-            }}
-        }}
-        requestAnimationFrame(draw);
-    }}
-    draw();
-}})();
-</script>
-""", unsafe_allow_html=True)
+""", height=210, scrolling=False)
 
 # ─── How to Use ───────────────────────────────────────────────────────────────
 
