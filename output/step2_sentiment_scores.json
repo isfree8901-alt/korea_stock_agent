@@ -1,79 +1,86 @@
 {
   "반도체": {
-    "article_count": 14,
+    "article_count": 13,
     "positive_signals": 31,
-    "negative_signals": 10,
-    "sentiment_score": 0.512,
+    "negative_signals": 12,
+    "sentiment_score": 0.442,
     "sentiment_label": "긍정"
   },
   "2차전지": {
-    "article_count": 1,
-    "positive_signals": 0,
-    "negative_signals": 0,
+    "article_count": 2,
+    "positive_signals": 2,
+    "negative_signals": 2,
     "sentiment_score": 0.0,
     "sentiment_label": "중립"
   },
   "바이오": {
-    "article_count": 18,
-    "positive_signals": 10,
+    "article_count": 13,
+    "positive_signals": 9,
     "negative_signals": 6,
-    "sentiment_score": 0.25,
+    "sentiment_score": 0.2,
     "sentiment_label": "긍정"
   },
   "자동차": {
-    "article_count": 7,
-    "positive_signals": 5,
+    "article_count": 10,
+    "positive_signals": 9,
     "negative_signals": 8,
-    "sentiment_score": -0.231,
-    "sentiment_label": "부정"
+    "sentiment_score": 0.059,
+    "sentiment_label": "중립"
   },
   "금융": {
-    "article_count": 53,
-    "positive_signals": 41,
+    "article_count": 61,
+    "positive_signals": 63,
     "negative_signals": 37,
-    "sentiment_score": 0.051,
-    "sentiment_label": "중립"
+    "sentiment_score": 0.26,
+    "sentiment_label": "긍정"
   },
   "에너지": {
     "article_count": 14,
-    "positive_signals": 7,
-    "negative_signals": 10,
-    "sentiment_score": -0.176,
-    "sentiment_label": "부정"
+    "positive_signals": 15,
+    "negative_signals": 8,
+    "sentiment_score": 0.304,
+    "sentiment_label": "긍정"
   },
   "통신": {
-    "article_count": 16,
-    "positive_signals": 17,
-    "negative_signals": 6,
-    "sentiment_score": 0.478,
+    "article_count": 7,
+    "positive_signals": 7,
+    "negative_signals": 5,
+    "sentiment_score": 0.167,
+    "sentiment_label": "긍정"
+  },
+  "철강": {
+    "article_count": 3,
+    "positive_signals": 2,
+    "negative_signals": 1,
+    "sentiment_score": 0.333,
     "sentiment_label": "긍정"
   },
   "화학": {
-    "article_count": 5,
-    "positive_signals": 8,
-    "negative_signals": 5,
-    "sentiment_score": 0.231,
+    "article_count": 2,
+    "positive_signals": 1,
+    "negative_signals": 0,
+    "sentiment_score": 1.0,
     "sentiment_label": "긍정"
   },
   "IT서비스": {
-    "article_count": 22,
-    "positive_signals": 32,
-    "negative_signals": 10,
-    "sentiment_score": 0.524,
+    "article_count": 25,
+    "positive_signals": 18,
+    "negative_signals": 6,
+    "sentiment_score": 0.5,
     "sentiment_label": "긍정"
   },
   "건설": {
     "article_count": 23,
-    "positive_signals": 24,
+    "positive_signals": 27,
     "negative_signals": 9,
-    "sentiment_score": 0.455,
+    "sentiment_score": 0.5,
     "sentiment_label": "긍정"
   },
   "유통": {
-    "article_count": 14,
-    "positive_signals": 3,
-    "negative_signals": 5,
-    "sentiment_score": -0.25,
-    "sentiment_label": "부정"
+    "article_count": 18,
+    "positive_signals": 9,
+    "negative_signals": 6,
+    "sentiment_score": 0.2,
+    "sentiment_label": "긍정"
   }
 }

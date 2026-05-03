@@ -50648,8 +50648,28 @@
     "corp_name": "큐로홀딩스"
   },
   "115180": {
-    "disclosure_warning": true,
-    "reason": "HTTPSConnectionPool(host='opendart.fss.or.kr', port=443): Max retries exceeded with url: /api/fnlttSinglAcntAll.json?crtfc_key=7402e8fe2b0258f5897ff17d37c13e595dc35b39&corp_code=01042650&bsns_year=2025&reprt_code=11011&fs_div=CFS (Caused by SSLError(SSLEOFError(8, '[SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1006)')))"
+    "total_assets": 61994415890.0,
+    "total_assets_prev": 58070561569.0,
+    "total_equity": 39191678309.0,
+    "total_equity_prev": 52684050748.0,
+    "total_debt": 22802737581.0,
+    "total_debt_prev": 5386510821.0,
+    "operating_income": -29764167099.0,
+    "operating_income_prev": -27477790640.0,
+    "eps_raw": -880.0,
+    "eps_raw_prev": -812.0,
+    "net_income": -31261963979.0,
+    "net_income_prev": -24996940757.0,
+    "revenue": 6982624830.0,
+    "revenue_prev": 9179834444.0,
+    "eps": -880.0,
+    "roe": -79.76684165582412,
+    "pbr": null,
+    "per": null,
+    "debt_ratio": 58.182600401074346,
+    "disclosure_warning": false,
+    "period": "2025_11011",
+    "corp_name": "큐리언트"
   },
   "494120": {
     "total_assets": 34228606164.0,
@@ -54873,8 +54893,24 @@
     "corp_name": "퓨릿"
   },
   "341170": {
-    "disclosure_warning": true,
-    "reason": "('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+    "total_assets": 674417838.0,
+    "total_assets_prev": 2184129984.0,
+    "total_equity": -3540375582.0,
+    "total_equity_prev": -1923583947.0,
+    "total_debt": 4214793420.0,
+    "total_debt_prev": 4107713931.0,
+    "eps_raw": -155.0,
+    "eps_raw_prev": -376.0,
+    "net_income": -1632172325.0,
+    "net_income_prev": -3960918173.0,
+    "eps": -155.0,
+    "roe": 46.1016716220251,
+    "pbr": null,
+    "per": null,
+    "debt_ratio": -119.04933028656279,
+    "disclosure_warning": false,
+    "period": "2025_11011",
+    "corp_name": "퓨쳐메디신"
   },
   "220100": {
     "total_assets": 74530577453.0,
@@ -56596,8 +56632,28 @@
     "reason": "corp_code 없음"
   },
   "065650": {
-    "disclosure_warning": true,
-    "reason": "HTTPSConnectionPool(host='opendart.fss.or.kr', port=443): Read timed out."
+    "total_assets": 71935567196.0,
+    "total_assets_prev": 60404547782.0,
+    "total_equity": 15312036023.0,
+    "total_equity_prev": 17490366497.0,
+    "total_debt": 56623531173.0,
+    "total_debt_prev": 42914181285.0,
+    "operating_income": -4281271081.0,
+    "operating_income_prev": -3854087462.0,
+    "eps_raw": -57.0,
+    "eps_raw_prev": -7498.0,
+    "net_income": -756373534.0,
+    "net_income_prev": -81184854824.0,
+    "revenue": 76186605609.0,
+    "revenue_prev": 57699281503.0,
+    "eps": -57.0,
+    "roe": -4.939731939396314,
+    "pbr": null,
+    "per": null,
+    "debt_ratio": 369.79753109218507,
+    "disclosure_warning": false,
+    "period": "2025_11011",
+    "corp_name": "하이퍼코퍼레이션"
   },
   "066130": {
     "total_assets": 159182470629.0,
@@ -57828,8 +57884,28 @@
     "corp_name": "한농화성"
   },
   "002390": {
-    "disclosure_warning": true,
-    "reason": "HTTPSConnectionPool(host='opendart.fss.or.kr', port=443): Read timed out."
+    "total_assets": 790750159507.0,
+    "total_assets_prev": 788555006781.0,
+    "total_equity": 278321412847.0,
+    "total_equity_prev": 289060270969.0,
+    "total_debt": 512428746660.0,
+    "total_debt_prev": 499494735812.0,
+    "operating_income": 3291476727.0,
+    "operating_income_prev": 538506984.0,
+    "eps_raw": -162.0,
+    "eps_raw_prev": -3819.0,
+    "net_income": -2238116610.0,
+    "net_income_prev": -52665955894.0,
+    "revenue": 535137855367.0,
+    "revenue_prev": 507358329302.0,
+    "eps": -162.0,
+    "roe": -0.8041481922306662,
+    "pbr": null,
+    "per": null,
+    "debt_ratio": 184.11402177729474,
+    "disclosure_warning": false,
+    "period": "2025_11011",
+    "corp_name": "한독"
   },
   "256150": {
     "total_assets": 64460471351.0,
