@@ -471,150 +471,127 @@ def _norm_val(v, vmin, vmax, invert: bool = False) -> float:
 
 st.markdown("""
 <style>
-/* ── 전체 앱 배경 ── */
+/* ── Apple 화이트 테마 ── */
 .stApp {
-    background: linear-gradient(135deg, #0a0e1a 0%, #0d1b2e 30%, #0a1628 60%, #050d1a 100%);
-    min-height: 100vh;
+    background: #f5f5f7;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif !important;
 }
 .stApp > header { background: transparent !important; }
-.block-container { padding-top: 1rem !important; }
+.block-container { padding-top: 1rem !important; max-width: 1400px; }
 
 /* ── 사이드바 ── */
 section[data-testid="stSidebar"] > div:first-child {
-    background: linear-gradient(180deg, #0d1b2e 0%, #0a1628 100%);
-    border-right: 1px solid rgba(56, 189, 248, 0.15);
-}
-section[data-testid="stSidebar"] * { color: #e2e8f0 !important; }
-section[data-testid="stSidebar"] h2, section[data-testid="stSidebar"] h3 {
-    color: #38bdf8 !important;
-    border-left: 3px solid #38bdf8 !important;
-    padding-left: 8px !important;
+    background: #ffffff;
+    border-right: 1px solid #e5e5ea;
 }
 
 /* ── 메트릭 카드 ── */
 [data-testid="metric-container"] {
-    background: rgba(255,255,255,0.04) !important;
-    border: 1px solid rgba(56,189,248,0.2) !important;
-    border-radius: 16px !important;
-    padding: 16px 20px !important;
-    backdrop-filter: blur(12px) !important;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06) !important;
-    transition: all 0.3s cubic-bezier(0.4,0,0.2,1) !important;
-    position: relative !important;
-    overflow: hidden !important;
-}
-[data-testid="metric-container"]::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 16px;
-    background: linear-gradient(135deg, rgba(56,189,248,0.06), transparent);
-    pointer-events: none;
+    background: #ffffff !important;
+    border: 1px solid #e5e5ea !important;
+    border-radius: 18px !important;
+    padding: 18px 20px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+    transition: all 0.3s ease !important;
 }
 [data-testid="metric-container"]:hover {
-    transform: translateY(-3px) !important;
-    border-color: rgba(56,189,248,0.5) !important;
-    box-shadow: 0 8px 32px rgba(56,189,248,0.15), inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1) !important;
+    transform: translateY(-2px) !important;
+    border-color: #0071e3 !important;
 }
-[data-testid="metric-container"] label { color: #94a3b8 !important; font-size: 0.78rem !important; letter-spacing: 0.08em !important; text-transform: uppercase !important; }
-[data-testid="metric-container"] [data-testid="stMetricValue"] { color: #f1f5f9 !important; font-size: 1.6rem !important; font-weight: 700 !important; }
-[data-testid="stMetricDelta"] { font-size: 0.8rem !important; }
+[data-testid="metric-container"] label { color: #6e6e73 !important; font-size: 0.75rem !important; letter-spacing: 0.04em !important; font-weight: 600 !important; }
+[data-testid="metric-container"] [data-testid="stMetricValue"] { color: #1d1d1f !important; font-size: 1.7rem !important; font-weight: 700 !important; }
 
 /* ── 헤딩 ── */
-h1 { color: #f8fafc !important; }
-h2 { border-left: 4px solid #38bdf8 !important; padding-left: 12px !important; margin-top: 2rem !important; color: #e2e8f0 !important; }
-h3 { color: #cbd5e1 !important; }
-p, li, span { color: #94a3b8; }
+h1 { color: #1d1d1f !important; font-weight: 700 !important; }
+h2 { border-left: 4px solid #0071e3 !important; padding-left: 12px !important; margin-top: 2rem !important; color: #1d1d1f !important; }
+h3 { color: #1d1d1f !important; }
+p { color: #424245; }
 
 /* ── 텍스트 ── */
-.stMarkdown p { color: #94a3b8; }
-.stCaption p { color: #64748b !important; }
+.stMarkdown p { color: #424245; }
+.stCaption p { color: #6e6e73 !important; }
 
 /* ── 구분선 ── */
-hr { border-color: rgba(56,189,248,0.15) !important; margin: 1.5rem 0 !important; }
+hr { border-color: #e5e5ea !important; margin: 1.5rem 0 !important; }
 
 /* ── 알림 ── */
-.stAlert { border-radius: 12px !important; backdrop-filter: blur(8px) !important; }
-.stAlert p { font-size: 0.88rem; }
-[data-testid="stAlertContainer"][data-baseweb="notification"][kind="success"] {
-    background: rgba(34,197,94,0.1) !important;
-    border: 1px solid rgba(34,197,94,0.3) !important;
-}
-[data-testid="stAlertContainer"][data-baseweb="notification"][kind="warning"] {
-    background: rgba(245,158,11,0.1) !important;
-    border: 1px solid rgba(245,158,11,0.3) !important;
-}
-[data-testid="stAlertContainer"][data-baseweb="notification"][kind="error"] {
-    background: rgba(239,68,68,0.1) !important;
-    border: 1px solid rgba(239,68,68,0.3) !important;
-}
+.stAlert { border-radius: 14px !important; }
+.stAlert p { font-size: 0.88rem; color: #1d1d1f; }
 
 /* ── expander ── */
 [data-testid="stExpander"] {
-    background: rgba(255,255,255,0.03) !important;
-    border: 1px solid rgba(56,189,248,0.12) !important;
-    border-radius: 12px !important;
-    backdrop-filter: blur(8px) !important;
+    background: #ffffff !important;
+    border: 1px solid #e5e5ea !important;
+    border-radius: 14px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
 }
-[data-testid="stExpander"] summary { color: #94a3b8 !important; }
 
-/* ── 데이터프레임 / 테이블 ── */
-.stDataFrame { border-radius: 12px !important; overflow: hidden; }
-.stDataFrame th { background: rgba(56,189,248,0.1) !important; color: #38bdf8 !important; }
-.stDataFrame td { color: #94a3b8 !important; }
+/* ── 데이터프레임 ── */
+.stDataFrame { border-radius: 14px !important; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.stDataFrame th { background: #f5f5f7 !important; color: #1d1d1f !important; font-weight: 600 !important; }
 
 /* ── 버튼 ── */
 .stButton > button {
-    background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(99,102,241,0.15)) !important;
-    border: 1px solid rgba(56,189,248,0.3) !important;
-    color: #e2e8f0 !important;
-    border-radius: 10px !important;
-    transition: all 0.2s !important;
+    background: #0071e3 !important;
+    border: none !important;
+    color: #ffffff !important;
+    border-radius: 980px !important;
+    padding: 8px 20px !important;
     font-weight: 600 !important;
+    font-size: 0.88rem !important;
+    transition: all 0.2s !important;
 }
 .stButton > button:hover {
-    background: linear-gradient(135deg, rgba(56,189,248,0.3), rgba(99,102,241,0.3)) !important;
-    border-color: #38bdf8 !important;
-    box-shadow: 0 0 16px rgba(56,189,248,0.3) !important;
+    background: #0077ed !important;
+    box-shadow: 0 4px 12px rgba(0,113,227,0.35) !important;
     transform: translateY(-1px) !important;
 }
 
 /* ── 인풋 ── */
 .stTextInput > div > div > input,
-.stNumberInput > div > div > input,
-.stSelectbox > div > div {
-    background: rgba(255,255,255,0.05) !important;
-    border: 1px solid rgba(56,189,248,0.2) !important;
-    color: #e2e8f0 !important;
-    border-radius: 8px !important;
+.stNumberInput > div > div > input {
+    background: #ffffff !important;
+    border: 1px solid #d2d2d7 !important;
+    color: #1d1d1f !important;
+    border-radius: 10px !important;
+}
+.stTextInput > div > div > input:focus,
+.stNumberInput > div > div > input:focus {
+    border-color: #0071e3 !important;
+    box-shadow: 0 0 0 3px rgba(0,113,227,0.15) !important;
 }
 
-/* ── select box ── */
-.stSelectbox [data-baseweb="select"] > div { background: rgba(10,14,26,0.8) !important; border-color: rgba(56,189,248,0.2) !important; }
+/* ── selectbox ── */
+.stSelectbox [data-baseweb="select"] > div {
+    background: #ffffff !important;
+    border-color: #d2d2d7 !important;
+    border-radius: 10px !important;
+    color: #1d1d1f !important;
+}
 
 /* ── 섹터 하이라이트 카드 ── */
 .hl-card {
-    background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.05));
-    border: 1px solid rgba(245,158,11,0.4);
+    background: linear-gradient(135deg, #fff9ed, #fffdf5);
+    border: 1px solid #f5a623;
     border-radius: 14px;
     padding: 14px 18px;
     margin-bottom: 8px;
-    backdrop-filter: blur(8px);
     transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(245,166,35,0.1);
 }
-.hl-card:hover { border-color: rgba(245,158,11,0.7); box-shadow: 0 4px 20px rgba(245,158,11,0.15); }
+.hl-card:hover { box-shadow: 0 6px 20px rgba(245,166,35,0.2); transform: translateY(-1px); }
 
-/* ── 글래스 카드 공통 ── */
-.glass-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(56,189,248,0.15);
-    border-radius: 16px;
-    padding: 16px 20px;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
-    transition: all 0.3s;
+/* ── Apple 카드 공통 ── */
+.apple-card {
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    transition: all 0.25s ease;
+    border: 1px solid rgba(0,0,0,0.04);
 }
-.glass-card:hover { border-color: rgba(56,189,248,0.4); box-shadow: 0 8px 32px rgba(56,189,248,0.1); transform: translateY(-2px); }
+.apple-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.12); transform: translateY(-2px); }
 
 /* ── 모바일 ── */
 @media (max-width: 768px) {
@@ -622,80 +599,39 @@ hr { border-color: rgba(56,189,248,0.15) !important; margin: 1.5rem 0 !important
     h1 { font-size: 1.4rem !important; }
     h2 { font-size: 1.1rem !important; }
     .stDataFrame { font-size: 0.72rem; }
-    [data-testid="metric-container"] { padding: 10px 12px !important; }
+    [data-testid="metric-container"] { padding: 12px 14px !important; }
 }
 
 /* ── 탭 스타일 ── */
 button[data-baseweb="tab"] {
-    background: rgba(255,255,255,0.03) !important;
-    border-radius: 10px 10px 0 0 !important;
-    color: #64748b !important;
+    background: transparent !important;
+    color: #6e6e73 !important;
     font-weight: 500 !important;
     transition: all 0.2s !important;
-    border-bottom-width: 3px !important;
+    border-radius: 8px 8px 0 0 !important;
 }
-button[data-baseweb="tab"]:hover { color: #e2e8f0 !important; background: rgba(56,189,248,0.06) !important; }
-button[data-baseweb="tab"]:nth-of-type(1) { border-bottom-color: #f59e0b !important; }
-button[data-baseweb="tab"]:nth-of-type(2) { border-bottom-color: #38bdf8 !important; }
-button[data-baseweb="tab"]:nth-of-type(3) { border-bottom-color: #22c55e !important; }
-button[data-baseweb="tab"]:nth-of-type(4) { border-bottom-color: #8b5cf6 !important; }
-button[data-baseweb="tab"]:nth-of-type(5) { border-bottom-color: #ef4444 !important; }
-button[data-baseweb="tab"]:nth-of-type(6) { border-bottom-color: #0ea5e9 !important; }
-button[data-baseweb="tab"]:nth-of-type(7) { border-bottom-color: #6b7280 !important; }
-button[data-baseweb="tab"][aria-selected="true"] { background: rgba(255,255,255,0.07) !important; color: #f1f5f9 !important; font-weight: 700 !important; }
-button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(1) { color: #fbbf24 !important; }
-button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(2) { color: #38bdf8 !important; }
-button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(3) { color: #4ade80 !important; }
-button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(4) { color: #a78bfa !important; }
-button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(5) { color: #f87171 !important; }
-button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(6) { color: #7dd3fc !important; }
-button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(7) { color: #9ca3af !important; }
+button[data-baseweb="tab"]:hover { color: #1d1d1f !important; background: rgba(0,0,0,0.03) !important; }
+button[data-baseweb="tab"]:nth-of-type(1) { border-bottom: 3px solid #f5a623 !important; }
+button[data-baseweb="tab"]:nth-of-type(2) { border-bottom: 3px solid #0071e3 !important; }
+button[data-baseweb="tab"]:nth-of-type(3) { border-bottom: 3px solid #34c759 !important; }
+button[data-baseweb="tab"]:nth-of-type(4) { border-bottom: 3px solid #af52de !important; }
+button[data-baseweb="tab"]:nth-of-type(5) { border-bottom: 3px solid #ff3b30 !important; }
+button[data-baseweb="tab"]:nth-of-type(6) { border-bottom: 3px solid #5ac8fa !important; }
+button[data-baseweb="tab"]:nth-of-type(7) { border-bottom: 3px solid #8e8e93 !important; }
+button[data-baseweb="tab"][aria-selected="true"] { background: rgba(0,0,0,0.04) !important; font-weight: 700 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(1) { color: #f5a623 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(2) { color: #0071e3 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(3) { color: #34c759 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(4) { color: #af52de !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(5) { color: #ff3b30 !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(6) { color: #5ac8fa !important; }
+button[data-baseweb="tab"][aria-selected="true"]:nth-of-type(7) { color: #8e8e93 !important; }
 
 /* ── 스크롤바 ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); }
-::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(56,189,248,0.5); }
-
-/* ── 애니메이션 키프레임 ── */
-@keyframes glow-pulse {
-    0%, 100% { box-shadow: 0 0 20px rgba(56,189,248,0.2); }
-    50% { box-shadow: 0 0 40px rgba(56,189,248,0.4), 0 0 80px rgba(56,189,248,0.1); }
-}
-@keyframes float-up {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-@keyframes slide-in-right {
-    from { opacity: 0; transform: translateX(30px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-@keyframes ticker-scroll {
-    0% { transform: translateX(100%); }
-    100% { transform: translateX(-100%); }
-}
-@keyframes gradient-shift {
-    0%   { background-position: 0% 50%; }
-    50%  { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-@keyframes particle-float {
-    0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
-    33% { transform: translateY(-20px) translateX(10px); opacity: 0.7; }
-    66% { transform: translateY(-10px) translateX(-8px); opacity: 0.5; }
-}
-@keyframes counter-up {
-    from { transform: translateY(8px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-@keyframes border-glow {
-    0%, 100% { border-color: rgba(56,189,248,0.2); }
-    50% { border-color: rgba(56,189,248,0.6); }
-}
-@keyframes spin-slow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
+::-webkit-scrollbar-track { background: #f5f5f7; }
+::-webkit-scrollbar-thumb { background: #c7c7cc; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #8e8e93; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -754,114 +690,41 @@ STEP_FILES = [
 # ─── 사이드바 ─────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.markdown(f"""
-<style>
-.sb-logo {{
-    background: linear-gradient(135deg, rgba(56,189,248,0.15), rgba(99,102,241,0.1));
-    border: 1px solid rgba(56,189,248,0.25);
-    border-radius: 16px;
-    padding: 14px 16px;
-    margin-bottom: 14px;
-    display: flex; align-items: center; gap: 12px;
-}}
-.sb-logo-icon {{
-    width: 40px; height: 40px; border-radius: 12px;
-    background: linear-gradient(135deg, #0ea5e9, #6366f1);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(14,165,233,0.3);
-}}
-.sb-logo-text {{ flex: 1; }}
-.sb-logo-title {{ font-size: 0.9rem; font-weight: 800; color: #f1f5f9 !important; margin: 0; line-height: 1.2; }}
-.sb-logo-sub {{ font-size: 0.65rem; color: #64748b !important; margin: 2px 0 0; letter-spacing: 0.06em; text-transform: uppercase; }}
-.sb-date-badge {{
-    display: inline-flex; align-items: center; gap: 5px;
-    background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.15);
-    border-radius: 8px; padding: 4px 10px;
-    font-size: 0.72rem; color: #94a3b8 !important; font-weight: 500;
-    margin-bottom: 14px;
-}}
-.sb-section-title {{
-    font-size: 0.68rem !important; text-transform: uppercase; letter-spacing: 0.1em;
-    color: #475569 !important; font-weight: 700 !important;
-    padding: 0 0 6px; margin: 0 0 8px;
-    border-bottom: 1px solid rgba(56,189,248,0.1);
-    display: flex; align-items: center; gap: 6px;
-}}
-.sb-step-row {{
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 5px 8px; border-radius: 8px; margin-bottom: 3px;
-    transition: background 0.15s;
-    font-size: 0.78rem;
-}}
-.sb-step-row:hover {{ background: rgba(255,255,255,0.04); }}
-.sb-step-ok {{ color: #4ade80 !important; font-weight: 600; }}
-.sb-step-err {{ color: #f87171 !important; font-weight: 600; }}
-.sb-step-label {{ color: #94a3b8 !important; font-weight: 600; font-size: 0.75rem; }}
-.sb-step-time {{ color: #475569 !important; font-size: 0.65rem; }}
-</style>
-<div class="sb-logo">
-    <div class="sb-logo-icon">📈</div>
-    <div class="sb-logo-text">
-        <div class="sb-logo-title">Korea Stock Agent</div>
-        <div class="sb-logo-sub">KRX · KOSPI / KOSDAQ</div>
-    </div>
-</div>
-<div class="sb-date-badge">📅 기준일: {date.today().strftime('%Y-%m-%d')}</div>
-""", unsafe_allow_html=True)
+    st.markdown("## 📈 Korea Stock Agent")
+    st.caption(f"KRX · KOSPI / KOSDAQ  |  기준일: {date.today().strftime('%Y-%m-%d')}")
+    st.divider()
 
-    _sb_step_rows_html = ""
+    st.markdown("**⚙️ 파이프라인 상태**")
     for label, fname in STEP_FILES:
         ok = (OUTPUT_DIR / fname).exists()
+        icon = "✅" if ok else "❌"
         mtime = file_mtime(fname) if ok else "없음"
-        _dot = f'<span class="sb-step-ok">●</span>' if ok else f'<span class="sb-step-err">○</span>'
-        _sb_step_rows_html += f"""
-        <div class="sb-step-row">
-            <span style="display:flex;align-items:center;gap:7px">{_dot} <span class="sb-step-label">{label}</span></span>
-            <span class="sb-step-time">{mtime}</span>
-        </div>"""
-
-    st.markdown(f"""
-<div class="sb-section-title">⚙️ 파이프라인 상태</div>
-{_sb_step_rows_html}
-""", unsafe_allow_html=True)
+        st.markdown(f"{icon} `{label}` — {mtime}")
 
     # 사이드바 관심 종목 미니 목록
     _sb_wl = _load_watchlist()
     if _sb_wl:
-        _sb_wl_rows = ""
+        st.divider()
+        st.markdown("**⭐ 관심 종목**")
         for _w in _sb_wl[:10]:
             _tk = _w["ticker"]
             _nm = _w["name"]
             _c1d = market_data_raw.get(_tk, {}).get("change_rate")
             _c1d_str = f"{_c1d:+.2f}%" if _c1d is not None else "—"
             _up = (_c1d or 0) >= 0
-            _clr = "#4ade80" if _up else "#f87171"
-            _arr = "▲" if _up else "▼"
-            _sb_wl_rows += f"""
-            <div class="sb-wl-row">
-                <span class="sb-wl-name">{_nm}</span>
-                <span class="sb-wl-chg" style="color:{_clr}">{_arr} {_c1d_str}</span>
-            </div>"""
-        _sb_more = f'<div style="font-size:0.65rem;color:#475569;text-align:right;margin-top:4px">+{len(_sb_wl)-10}개 더</div>' if len(_sb_wl) > 10 else ""
-        st.markdown(f"""
-<style>
-.sb-wl-row {{
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 5px 8px; border-radius: 8px; margin-bottom: 2px;
-    transition: background 0.15s;
-}}
-.sb-wl-row:hover {{ background: rgba(255,255,255,0.04); }}
-.sb-wl-name {{ font-size: 0.77rem; color: #cbd5e1 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }}
-.sb-wl-chg {{ font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }}
-</style>
-<div class="sb-section-title" style="margin-top:12px">⭐ 관심 종목</div>
-{_sb_wl_rows}
-{_sb_more}
-""", unsafe_allow_html=True)
+            _arrow = "▲" if _up else "▼"
+            _color = "green" if _up else "red"
+            st.markdown(
+                f'<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px">'
+                f'<span style="color:#1d1d1f">{_nm}</span>'
+                f'<span style="color:{"#34c759" if _up else "#ff3b30"};font-weight:600">{_arrow} {_c1d_str}</span></div>',
+                unsafe_allow_html=True,
+            )
+        if len(_sb_wl) > 10:
+            st.caption(f"+ {len(_sb_wl)-10}개 더")
 
-    st.markdown('<div style="height:1px;background:rgba(56,189,248,0.1);margin:12px 0"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sb-section-title">🔧 표시 설정</div>', unsafe_allow_html=True)
+    st.divider()
+    st.markdown("**🔧 표시 설정**")
     compare_period = st.radio(
         "Top10 순위 비교 기간",
         ["1d", "7d", "15d", "30d"],
@@ -923,116 +786,264 @@ _particle_css_dots = "".join(
 )
 
 _components.html(f"""
+<!DOCTYPE html>
+<html>
+<head>
 <style>
-@keyframes particle-float {{
-  0%,100% {{ transform: translateY(0) translateX(0); opacity: 0.3; }}
-  33% {{ transform: translateY(-18px) translateX(8px); opacity: 0.8; }}
-  66% {{ transform: translateY(-8px) translateX(-6px); opacity: 0.5; }}
-}}
-@keyframes gradient-shift {{
-  0%   {{ background-position: 0% 50%; }}
-  50%  {{ background-position: 100% 50%; }}
-  100% {{ background-position: 0% 50%; }}
-}}
-@keyframes float-up {{
-  from {{ opacity:0; transform:translateY(16px); }}
-  to   {{ opacity:1; transform:translateY(0); }}
-}}
-@keyframes glow-pulse {{
-  0%,100% {{ box-shadow: 0 0 16px rgba(56,189,248,0.2); }}
-  50%     {{ box-shadow: 0 0 36px rgba(56,189,248,0.5), 0 0 60px rgba(56,189,248,0.15); }}
-}}
-body {{ margin:0; overflow:hidden; background:transparent; }}
+  * {{ margin:0; padding:0; box-sizing:border-box; }}
+  body {{ background:transparent; font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif; overflow:hidden; }}
 
-.hero-outer {{
-  position:relative; overflow:hidden; border-radius:20px;
-  background: linear-gradient(135deg, #0d1b2e 0%, #0a1628 50%, #071020 100%);
-  border: 1px solid rgba(56,189,248,0.22);
-  box-shadow: 0 0 80px rgba(56,189,248,0.07), 0 16px 48px rgba(0,0,0,0.45);
-}}
-.hero-grid {{
-  position:absolute;inset:0;
-  background-image: linear-gradient(rgba(56,189,248,0.04) 1px,transparent 1px),
-                    linear-gradient(90deg,rgba(56,189,248,0.04) 1px,transparent 1px);
-  background-size:40px 40px; z-index:0;
-}}
-.orb {{ position:absolute; border-radius:50%; filter:blur(70px); pointer-events:none; z-index:0; }}
-.orb1 {{ width:380px;height:380px;background:radial-gradient(circle,rgba(56,189,248,0.14),transparent 70%);
-         top:-100px;left:-80px; animation:particle-float 9s ease-in-out infinite; }}
-.orb2 {{ width:260px;height:260px;background:radial-gradient(circle,rgba(99,102,241,0.11),transparent 70%);
-         bottom:-70px;right:-50px; animation:particle-float 11s ease-in-out infinite reverse; }}
-.orb3 {{ width:180px;height:180px;background:radial-gradient(circle,rgba(245,158,11,0.08),transparent 70%);
-         top:40%;right:22%; animation:particle-float 13s ease-in-out infinite 3s; }}
-.hero-inner {{
-  position:relative; z-index:2; padding:38px 44px 34px;
-  display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
-}}
-.badge {{
-  display:inline-flex; align-items:center; gap:6px;
-  background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.28);
-  border-radius:100px; padding:4px 13px;
-  font-size:11px; font-weight:700; letter-spacing:0.09em; color:#38bdf8;
-  text-transform:uppercase; margin-bottom:18px;
-  animation: float-up 0.4s ease both;
-}}
-.dot {{ width:7px;height:7px;border-radius:50%;background:#4ade80;
-        box-shadow:0 0 8px #4ade80; animation:glow-pulse 2s ease-in-out infinite; display:inline-block; }}
-.hero-title {{
-  font-size:clamp(1.9rem,3.8vw,3.1rem); font-weight:900; line-height:1.1;
-  letter-spacing:-0.02em; margin:0 0 10px;
-  background: linear-gradient(135deg,#f8fafc 0%,#38bdf8 40%,#818cf8 70%,#f8fafc 100%);
-  background-size:300% 300%;
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-  animation: gradient-shift 6s ease infinite, float-up 0.5s ease both 0.1s;
-}}
-.hero-sub {{
-  font-size:0.95rem; color:#64748b; margin:0 0 26px;
-  animation:float-up 0.5s ease both 0.2s; opacity:0; animation-fill-mode:forwards;
-}}
-.stats {{ display:flex; gap:18px; flex-wrap:wrap;
-          animation:float-up 0.5s ease both 0.3s; opacity:0; animation-fill-mode:forwards; }}
-.stat {{ display:flex; flex-direction:column; gap:3px; }}
-.stat-label {{ font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:#475569; font-weight:700; }}
-.stat-value {{ font-size:1.05rem; font-weight:800; color:#e2e8f0; }}
-.divider {{ width:1px; background:rgba(56,189,248,0.15); align-self:stretch; margin:0 6px; }}
-.pulse {{
-  position:relative; width:76px; height:76px;
-  display:flex; align-items:center; justify-content:center;
-}}
-.pulse::before,.pulse::after {{
-  content:''; position:absolute; border-radius:50%; border:2px solid rgba(56,189,248,0.3);
-  animation:glow-pulse 2s ease-in-out infinite;
-}}
-.pulse::before {{ width:54px; height:54px; }}
-.pulse::after  {{ width:76px; height:76px; animation-delay:0.5s; opacity:0.5; }}
-.pulse-icon {{ font-size:1.9rem; position:relative; z-index:1; }}
+  @keyframes fadeUp {{
+    from {{ opacity:0; transform:translateY(14px); }}
+    to   {{ opacity:1; transform:translateY(0); }}
+  }}
+  @keyframes gradShift {{
+    0%,100% {{ background-position:0% 50%; }}
+    50%     {{ background-position:100% 50%; }}
+  }}
+  @keyframes pulse {{
+    0%,100% {{ transform:scale(1); opacity:0.6; }}
+    50%     {{ transform:scale(1.12); opacity:1; }}
+  }}
+  @keyframes orbFloat {{
+    0%,100% {{ transform:translate(0,0); }}
+    50%     {{ transform:translate(12px,-16px); }}
+  }}
+  @keyframes dotBlink {{
+    0%,100% {{ opacity:1; }} 50% {{ opacity:0.3; }}
+  }}
+
+  .hero {{
+    position:relative; overflow:hidden;
+    border-radius:22px;
+    background:#ffffff;
+    border:1px solid #e5e5ea;
+    box-shadow:0 4px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+    height:190px;
+  }}
+
+  /* 배경 오브 */
+  .orb {{
+    position:absolute; border-radius:50%; filter:blur(60px); pointer-events:none;
+  }}
+  .orb1 {{
+    width:320px; height:320px;
+    background:radial-gradient(circle, rgba(0,113,227,0.1), transparent 70%);
+    top:-120px; left:-60px;
+    animation:orbFloat 10s ease-in-out infinite;
+  }}
+  .orb2 {{
+    width:220px; height:220px;
+    background:radial-gradient(circle, rgba(52,199,89,0.08), transparent 70%);
+    bottom:-80px; right:10%;
+    animation:orbFloat 13s ease-in-out infinite reverse;
+  }}
+  .orb3 {{
+    width:160px; height:160px;
+    background:radial-gradient(circle, rgba(175,82,222,0.07), transparent 70%);
+    top:20%; right:28%;
+    animation:orbFloat 16s ease-in-out infinite 2s;
+  }}
+
+  /* 미세 도트 파티클 */
+  .dot-particle {{
+    position:absolute; border-radius:50%; pointer-events:none;
+    animation:orbFloat linear infinite;
+  }}
+
+  /* 격자 */
+  .grid {{
+    position:absolute; inset:0;
+    background-image:
+      linear-gradient(rgba(0,113,227,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,113,227,0.04) 1px, transparent 1px);
+    background-size:36px 36px;
+  }}
+
+  /* 콘텐츠 */
+  .inner {{
+    position:relative; z-index:2;
+    padding:30px 36px 28px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+  }}
+
+  .live-badge {{
+    display:inline-flex; align-items:center; gap:6px;
+    background:#f0f7ff; border:1px solid #bcd9ff;
+    border-radius:980px; padding:4px 12px;
+    font-size:10.5px; font-weight:700; letter-spacing:0.08em; color:#0071e3;
+    text-transform:uppercase; margin-bottom:14px;
+    animation:fadeUp 0.4s ease both;
+  }}
+  .live-dot {{
+    width:6px; height:6px; border-radius:50%; background:#34c759;
+    box-shadow:0 0 6px rgba(52,199,89,0.8);
+    animation:dotBlink 2s ease-in-out infinite;
+  }}
+
+  .title {{
+    font-size:clamp(1.7rem,3.5vw,2.8rem);
+    font-weight:800; line-height:1.08; letter-spacing:-0.03em;
+    margin-bottom:8px;
+    background:linear-gradient(135deg, #1d1d1f 0%, #0071e3 45%, #5e5ce6 80%, #1d1d1f 100%);
+    background-size:300% 300%;
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    animation:gradShift 7s ease infinite, fadeUp 0.5s ease both 0.1s;
+  }}
+
+  .subtitle {{
+    font-size:0.88rem; color:#6e6e73; margin-bottom:22px;
+    animation:fadeUp 0.5s ease both 0.2s;
+  }}
+
+  .stats {{
+    display:flex; gap:0; align-items:stretch;
+    animation:fadeUp 0.5s ease both 0.3s;
+  }}
+  .stat {{
+    display:flex; flex-direction:column; gap:2px;
+    padding:0 16px 0 0;
+  }}
+  .stat:first-child {{ padding-left:0; }}
+  .stat-label {{
+    font-size:9.5px; text-transform:uppercase; letter-spacing:0.09em;
+    color:#8e8e93; font-weight:600;
+  }}
+  .stat-value {{
+    font-size:0.95rem; font-weight:700; color:#1d1d1f;
+  }}
+  .stat-sep {{
+    width:1px; background:#e5e5ea; margin:0 2px 0 2px; align-self:stretch;
+    flex-shrink:0;
+  }}
+
+  /* 우측 아이콘 */
+  .icon-ring {{
+    position:relative; width:72px; height:72px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    margin-top:4px;
+  }}
+  .icon-ring::before {{
+    content:'';
+    position:absolute; inset:0; border-radius:50%;
+    border:1.5px solid rgba(0,113,227,0.2);
+    animation:pulse 3s ease-in-out infinite;
+  }}
+  .icon-ring::after {{
+    content:'';
+    position:absolute; inset:-8px; border-radius:50%;
+    border:1px solid rgba(0,113,227,0.08);
+    animation:pulse 3s ease-in-out infinite 0.8s;
+  }}
+  .icon-bg {{
+    width:52px; height:52px; border-radius:50%;
+    background:linear-gradient(135deg,#e8f1ff,#d0e4ff);
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.6rem;
+    box-shadow:0 4px 16px rgba(0,113,227,0.18);
+  }}
+
+  /* 우상단 상태 칩 */
+  .status-chip {{
+    position:absolute; top:18px; right:18px;
+    display:inline-flex; align-items:center; gap:5px;
+    background:#f5f5f7; border:1px solid #e5e5ea;
+    border-radius:980px; padding:4px 10px;
+    font-size:10px; font-weight:600; color:#6e6e73;
+  }}
 </style>
-
-<div class="hero-outer" style="height:200px">
-  <div class="hero-grid"></div>
+</head>
+<body>
+<div class="hero">
+  <div class="grid"></div>
   <div class="orb orb1"></div>
   <div class="orb orb2"></div>
   <div class="orb orb3"></div>
   {_particle_css_dots}
-  <div class="hero-inner">
+
+  <div class="status-chip">
+    <span style="width:5px;height:5px;border-radius:50%;background:{'#34c759' if _step_ok_count==_step_total else '#ff9500'};display:inline-block"></span>
+    파이프라인 {_pipeline_health}
+  </div>
+
+  <div class="inner">
     <div>
-      <div class="badge"><span class="dot"></span> LIVE · KRX Analysis Platform</div>
-      <div class="hero-title">Korea Stock Agent</div>
-      <p class="hero-sub">섹터 리밸런싱 트래커 · KOSPI/KOSDAQ 투자 분석 자동화</p>
+      <div class="live-badge"><span class="live-dot"></span>LIVE · KRX Analysis Platform</div>
+      <div class="title">Korea Stock Agent</div>
+      <div class="subtitle">섹터 리밸런싱 트래커 · KOSPI/KOSDAQ 투자 분석 자동화</div>
       <div class="stats">
-        <div class="stat"><span class="stat-label">기준일</span><span class="stat-value">{_today_str}</span></div>
-        <div class="divider"></div>
-        <div class="stat"><span class="stat-label">파이프라인</span><span class="stat-value" style="color:{_health_color}">{_pipeline_health}</span></div>
-        <div class="divider"></div>
-        <div class="stat"><span class="stat-label">마지막 실행</span><span class="stat-value">{_mtime_str}</span></div>
-        <div class="divider"></div>
-        <div class="stat"><span class="stat-label">모니터링 섹터</span><span class="stat-value">{len(rankings_data)}개</span></div>
+        <div class="stat">
+          <span class="stat-label">기준일</span>
+          <span class="stat-value">{_today_str}</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-label">마지막 실행</span>
+          <span class="stat-value">{_mtime_str}</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-label">모니터링 섹터</span>
+          <span class="stat-value">{len(rankings_data)}개</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-label">주목 섹터</span>
+          <span class="stat-value" style="color:#0071e3">{highlighted_count}개</span>
+        </div>
       </div>
     </div>
-    <div class="pulse"><span class="pulse-icon">📈</span></div>
+    <div class="icon-ring">
+      <div class="icon-bg">📈</div>
+    </div>
   </div>
 </div>
-""", height=210, scrolling=False)
+
+<script>
+(function() {{
+  var canvas = document.createElement('canvas');
+  var hero = document.querySelector('.hero');
+  canvas.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;border-radius:22px;';
+  hero.appendChild(canvas);
+  function resize() {{ canvas.width=hero.offsetWidth; canvas.height=hero.offsetHeight; }}
+  resize();
+  var ctx = canvas.getContext('2d');
+  var pts = [];
+  for(var i=0;i<50;i++) {{
+    pts.push({{
+      x:Math.random()*canvas.width, y:Math.random()*canvas.height,
+      vx:(Math.random()-.5)*.35, vy:(Math.random()-.5)*.35,
+      r:Math.random()*1.2+.3,
+      c:Math.random()>.5?'0,113,227':'52,199,89',
+      a:Math.random()*.25+.08
+    }});
+  }}
+  function draw() {{
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(var i=0;i<pts.length;i++) {{
+      var p=pts[i];
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0) p.x=canvas.width; if(p.x>canvas.width) p.x=0;
+      if(p.y<0) p.y=canvas.height; if(p.y>canvas.height) p.y=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle='rgba('+p.c+','+p.a+')'; ctx.fill();
+      for(var j=i+1;j<pts.length;j++) {{
+        var q=pts[j], dx=p.x-q.x, dy=p.y-q.y, d=Math.sqrt(dx*dx+dy*dy);
+        if(d<70) {{
+          ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y);
+          ctx.strokeStyle='rgba(0,113,227,'+(0.07*(1-d/70))+')';
+          ctx.lineWidth=.5; ctx.stroke();
+        }}
+      }}
+    }}
+    requestAnimationFrame(draw);
+  }}
+  draw();
+}})();
+</script>
+</body>
+</html>
+""", height=200, scrolling=False)
 
 # ─── How to Use ───────────────────────────────────────────────────────────────
 
@@ -1188,102 +1199,15 @@ _month = date.today().month
 _is_offensive = _month in [11, 12, 1, 2, 3, 4]
 
 if _is_offensive:
-    _season_bg = "linear-gradient(135deg, rgba(34,197,94,0.12) 0%, rgba(16,185,129,0.08) 100%)"
-    _season_border = "rgba(34,197,94,0.4)"
-    _season_glow = "rgba(34,197,94,0.15)"
-    _season_color = "#4ade80"
-    _season_icon = "🚀"
-    _season_label = "공격 시즌"
-    _season_desc = f"통계적으로 수익률이 좋은 11~4월 구간 ({_month}월)"
-    _season_action = "주식 비중 유지·확대 검토"
-    _season_badge_bg = "rgba(34,197,94,0.15)"
-    _season_badge_color = "#4ade80"
+    st.success(
+        f"**공격 시즌 ({_month}월)** — 11~4월 통계적 강세 구간입니다.  주식 비중 유지·확대를 검토하세요.",
+        icon="🚀",
+    )
 else:
-    _season_bg = "linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(251,191,36,0.06) 100%)"
-    _season_border = "rgba(245,158,11,0.4)"
-    _season_glow = "rgba(245,158,11,0.12)"
-    _season_color = "#fbbf24"
-    _season_icon = "🛡️"
-    _season_label = "방어 시즌"
-    _season_desc = f"통계적으로 수익률이 낮은 5~10월 구간 ({_month}월)"
-    _season_action = "비중 축소 및 현금 확보 검토"
-    _season_badge_bg = "rgba(245,158,11,0.15)"
-    _season_badge_color = "#fbbf24"
-
-st.markdown(f"""
-<style>
-.season-banner {{
-    background: {_season_bg};
-    border: 1px solid {_season_border};
-    border-radius: 16px;
-    padding: 18px 24px;
-    margin-bottom: 1rem;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 4px 24px {_season_glow}, inset 0 1px 0 rgba(255,255,255,0.06);
-    display: flex; align-items: center; gap: 16px;
-    animation: float-up 0.5s ease both 0.4s, border-glow 4s ease-in-out infinite;
-    opacity: 0; animation-fill-mode: forwards;
-    transition: transform 0.2s, box-shadow 0.2s;
-}}
-.season-banner:hover {{
-    transform: translateY(-2px);
-    box-shadow: 0 8px 32px {_season_glow};
-}}
-.season-icon-wrap {{
-    font-size: 2rem;
-    width: 52px; height: 52px;
-    display: flex; align-items: center; justify-content: center;
-    background: {_season_badge_bg};
-    border-radius: 14px;
-    flex-shrink: 0;
-    border: 1px solid {_season_border};
-}}
-.season-content {{ flex: 1; }}
-.season-title {{
-    font-size: 1rem; font-weight: 700; color: {_season_color};
-    margin: 0 0 4px; display: flex; align-items: center; gap: 8px;
-}}
-.season-badge {{
-    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-    padding: 2px 8px; border-radius: 100px;
-    background: {_season_badge_bg}; color: {_season_badge_color};
-    border: 1px solid {_season_border};
-}}
-.season-desc {{ font-size: 0.82rem; color: #94a3b8; margin: 0 0 2px; }}
-.season-action {{ font-size: 0.88rem; font-weight: 600; color: #e2e8f0; margin: 0; }}
-.season-month-ring {{
-    position: relative;
-    width: 52px; height: 52px;
-    flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-}}
-.season-month-text {{
-    font-size: 1.3rem; font-weight: 800; color: {_season_color};
-    position: relative; z-index: 1;
-}}
-.season-month-ring::before {{
-    content: '';
-    position: absolute; inset: 0; border-radius: 50%;
-    border: 2px solid {_season_border};
-    animation: glow-pulse 3s ease-in-out infinite;
-}}
-</style>
-
-<div class="season-banner">
-    <div class="season-icon-wrap">{_season_icon}</div>
-    <div class="season-content">
-        <div class="season-title">
-            {_season_label}
-            <span class="season-badge">{'OFFENSIVE' if _is_offensive else 'DEFENSIVE'}</span>
-        </div>
-        <p class="season-desc">{_season_desc}</p>
-        <p class="season-action">→ {_season_action}</p>
-    </div>
-    <div class="season-month-ring">
-        <span class="season-month-text">{_month}월</span>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    st.warning(
+        f"**방어 시즌 ({_month}월)** — 5~10월 통계적 약세 구간입니다.  비중 축소 및 현금 확보를 검토하세요.",
+        icon="🛡️",
+    )
 
 # ─── 자산배분 현황 ────────────────────────────────────────────────────────────
 
@@ -1314,173 +1238,68 @@ with st.expander("📊 자산배분 현황 (권고: 주식 35% · 현금 50% · 
 # ─── 알림 배너 ───────────────────────────────────────────────────────────────
 
 if all_new or all_removed:
-    _alert_new_badges = "".join(
-        f'<span class="alert-chip alert-chip-green">🆕 {n} <em>({s})</em></span>'
-        for n, s in all_new[:6]
-    )
-    _alert_new_extra = f'<span class="alert-chip-more">+{len(all_new)-6}개 더</span>' if len(all_new) > 6 else ""
-    _alert_rm_badges = "".join(
-        f'<span class="alert-chip alert-chip-red">🔴 {n} <em>({s})</em></span>'
-        for n, s in all_removed[:6]
-    )
-    _alert_rm_extra = f'<span class="alert-chip-more">+{len(all_removed)-6}개 더</span>' if len(all_removed) > 6 else ""
-
-    _alert_cols_html = ""
-    if all_new:
-        _alert_cols_html += f"""
-        <div class="alert-banner alert-banner-green">
-            <div class="alert-banner-head">
-                <span class="alert-banner-icon">✅</span>
-                <span class="alert-banner-title">오늘 신규편입</span>
-                <span class="alert-count-badge alert-count-green">{len(all_new)}종목</span>
-            </div>
-            <div class="alert-chips">{_alert_new_badges}{_alert_new_extra}</div>
-        </div>"""
-    if all_removed:
-        _alert_cols_html += f"""
-        <div class="alert-banner alert-banner-red">
-            <div class="alert-banner-head">
-                <span class="alert-banner-icon">⚠️</span>
-                <span class="alert-banner-title">오늘 제외</span>
-                <span class="alert-count-badge alert-count-red">{len(all_removed)}종목</span>
-            </div>
-            <div class="alert-chips">{_alert_rm_badges}{_alert_rm_extra}</div>
-        </div>"""
-
-    _alert_grid_cols = "1fr 1fr" if (all_new and all_removed) else "1fr"
-    st.markdown(f"""
-<style>
-.alert-row {{ display:grid; grid-template-columns:{_alert_grid_cols}; gap:12px; margin-bottom:1rem; }}
-.alert-banner {{
-    border-radius: 14px; padding: 14px 18px;
-    backdrop-filter: blur(12px);
-    animation: float-up 0.4s ease both;
-    transition: transform 0.2s, box-shadow 0.2s;
-}}
-.alert-banner:hover {{ transform: translateY(-2px); }}
-.alert-banner-green {{
-    background: rgba(34,197,94,0.08);
-    border: 1px solid rgba(34,197,94,0.3);
-    box-shadow: 0 4px 20px rgba(34,197,94,0.08);
-}}
-.alert-banner-red {{
-    background: rgba(239,68,68,0.08);
-    border: 1px solid rgba(239,68,68,0.3);
-    box-shadow: 0 4px 20px rgba(239,68,68,0.08);
-}}
-.alert-banner-head {{
-    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
-}}
-.alert-banner-icon {{ font-size: 1.1rem; }}
-.alert-banner-title {{ font-size: 0.88rem; font-weight: 700; color: #e2e8f0; flex: 1; }}
-.alert-count-badge {{
-    font-size: 0.72rem; font-weight: 700; padding: 2px 10px;
-    border-radius: 100px; letter-spacing: 0.05em;
-}}
-.alert-count-green {{ background: rgba(34,197,94,0.2); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }}
-.alert-count-red   {{ background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }}
-.alert-chips {{ display: flex; flex-wrap: wrap; gap: 6px; }}
-.alert-chip {{
-    font-size: 0.73rem; padding: 3px 10px; border-radius: 100px;
-    font-weight: 500; white-space: nowrap;
-}}
-.alert-chip em {{ font-style: normal; opacity: 0.6; }}
-.alert-chip-green {{ background: rgba(34,197,94,0.12); color: #86efac; border: 1px solid rgba(34,197,94,0.2); }}
-.alert-chip-red   {{ background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }}
-.alert-chip-more  {{ font-size: 0.72rem; color: #64748b; padding: 3px 8px; }}
-</style>
-<div class="alert-row">
-{_alert_cols_html}
-</div>
-""", unsafe_allow_html=True)
+    _ab1, _ab2 = st.columns(2)
+    with _ab1:
+        if all_new:
+            _new_names = "  ".join(f"`🆕 {n} ({s})`" for n, s in all_new[:6])
+            _extra = f"  …외 {len(all_new)-6}개" if len(all_new) > 6 else ""
+            st.success(f"**오늘 신규편입 {len(all_new)}종목**  {_new_names}{_extra}")
+    with _ab2:
+        if all_removed:
+            _rm_names = "  ".join(f"`🔴 {n} ({s})`" for n, s in all_removed[:6])
+            _extra = f"  …외 {len(all_removed)-6}개" if len(all_removed) > 6 else ""
+            st.error(f"**오늘 제외 {len(all_removed)}종목**  {_rm_names}{_extra}")
 
 # ─── KPI 요약 카드 ────────────────────────────────────────────────────────────
 
-_kpi_items = [
-    {"icon": "🔭", "label": "모니터링 섹터", "value": f"{len(rankings_data)}",  "unit": "개",  "color": "#38bdf8", "delay": "0.5s"},
-    {"icon": "⭐", "label": "주목 섹터",     "value": f"{highlighted_count}",   "unit": "개",  "color": "#fbbf24", "delay": "0.6s"},
-    {"icon": "🆕", "label": "신규 편입",     "value": f"{len(all_new)}",        "unit": "종목","color": "#4ade80", "delay": "0.7s"},
-    {"icon": "🔴", "label": "오늘 제외",     "value": f"{len(all_removed)}",    "unit": "종목","color": "#f87171", "delay": "0.8s"},
-    {"icon": "📊", "label": "재무비율 산출", "value": f"{per_ok}",              "unit": "종목","color": "#a78bfa", "delay": "0.9s"},
+_kpi_data = [
+    ("🔭", "모니터링 섹터", str(len(rankings_data)), "개",  "#0071e3", "#e8f1ff"),
+    ("⭐", "주목 섹터",     str(highlighted_count),   "개",  "#f5a623", "#fff8ed"),
+    ("🆕", "신규 편입",     str(len(all_new)),        "종목","#34c759", "#edfbf1"),
+    ("🔴", "오늘 제외",     str(len(all_removed)),    "종목","#ff3b30", "#fff0f0"),
+    ("📊", "재무비율 산출", str(per_ok),              "종목","#af52de", "#f8eeff"),
 ]
 
-_kpi_cards_html = ""
-for _ki in _kpi_items:
-    _kpi_cards_html += f"""
-    <div class="kpi-card" style="animation-delay:{_ki['delay']}">
-        <div class="kpi-icon-ring" style="--kpi-color:{_ki['color']}">
-            <span>{_ki['icon']}</span>
-        </div>
-        <div class="kpi-body">
-            <div class="kpi-label">{_ki['label']}</div>
-            <div class="kpi-value">
-                <span class="kpi-num" style="color:{_ki['color']}">{_ki['value']}</span>
-                <span class="kpi-unit">{_ki['unit']}</span>
-            </div>
-        </div>
-        <div class="kpi-glow" style="background:radial-gradient(circle at 50% 100%, {_ki['color']}18, transparent 70%)"></div>
+_kpi_html_cards = ""
+for _icon, _label, _val, _unit, _clr, _bg in _kpi_data:
+    _kpi_html_cards += f"""
+    <div class="kc" onmouseenter="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.1)'"
+                    onmouseleave="this.style.transform='';this.style.boxShadow='0 2px 10px rgba(0,0,0,0.06)'">
+      <div class="kc-icon" style="background:{_bg}">{_icon}</div>
+      <div class="kc-body">
+        <div class="kc-label">{_label}</div>
+        <div class="kc-val"><span style="color:{_clr}">{_val}</span><span class="kc-unit">{_unit}</span></div>
+      </div>
+      <div class="kc-accent" style="background:{_clr}"></div>
     </div>"""
 
-st.markdown(f"""
+_components.html(f"""
+<!DOCTYPE html><html><head>
 <style>
-.kpi-row {{
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 12px;
-    margin-bottom: 1.2rem;
+*{{margin:0;padding:0;box-sizing:border-box;}}
+body{{background:transparent;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;}}
+@keyframes fadeUp{{from{{opacity:0;transform:translateY(10px)}}to{{opacity:1;transform:translateY(0)}}}}
+.row{{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:2px;}}
+.kc{{
+  background:#fff;border-radius:16px;padding:16px 14px;
+  border:1px solid #f0f0f5;
+  box-shadow:0 2px 10px rgba(0,0,0,0.06);
+  display:flex;align-items:center;gap:12px;
+  cursor:default;transition:transform .25s ease,box-shadow .25s ease;
+  position:relative;overflow:hidden;
+  animation:fadeUp .4s ease both;
 }}
-@media (max-width: 900px) {{ .kpi-row {{ grid-template-columns: repeat(3, 1fr); }} }}
-@media (max-width: 600px) {{ .kpi-row {{ grid-template-columns: repeat(2, 1fr); }} }}
-.kpi-card {{
-    position: relative;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 18px;
-    padding: 18px 16px 16px;
-    backdrop-filter: blur(16px);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-    display: flex; align-items: center; gap: 14px;
-    overflow: hidden;
-    cursor: default;
-    opacity: 0;
-    animation: float-up 0.5s ease forwards;
-    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), box-shadow 0.25s, border-color 0.25s;
-}}
-.kpi-card:hover {{
-    transform: translateY(-4px) scale(1.02);
-    border-color: var(--kpi-color, rgba(56,189,248,0.4));
-    box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 24px var(--kpi-color, rgba(56,189,248,0.2));
-}}
-.kpi-icon-ring {{
-    width: 46px; height: 46px; flex-shrink: 0;
-    border-radius: 14px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
-}}
-.kpi-body {{ flex: 1; min-width: 0; }}
-.kpi-label {{
-    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
-    color: #475569; font-weight: 600; margin-bottom: 4px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}}
-.kpi-value {{ display: flex; align-items: baseline; gap: 3px; }}
-.kpi-num {{
-    font-size: 1.75rem; font-weight: 800; line-height: 1;
-    animation: counter-up 0.4s ease both;
-}}
-.kpi-unit {{ font-size: 0.75rem; color: #64748b; font-weight: 500; }}
-.kpi-glow {{
-    position: absolute; bottom: 0; left: 0; right: 0; height: 60%;
-    pointer-events: none; z-index: 0;
-}}
+.kc-icon{{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;}}
+.kc-body{{flex:1;min-width:0;}}
+.kc-label{{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#8e8e93;font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}}
+.kc-val{{font-size:1.65rem;font-weight:800;line-height:1;color:#1d1d1f;display:flex;align-items:baseline;gap:3px;}}
+.kc-unit{{font-size:.72rem;color:#8e8e93;font-weight:500;}}
+.kc-accent{{position:absolute;bottom:0;left:0;right:0;height:3px;opacity:.6;}}
 </style>
-<div class="kpi-row">
-{_kpi_cards_html}
-</div>
-""", unsafe_allow_html=True)
+</head><body>
+<div class="row">{_kpi_html_cards}</div>
+</body></html>
+""", height=110, scrolling=False)
 
 # ─── 글로벌 시장 지수 ─────────────────────────────────────────────────────────
 
@@ -1510,64 +1329,49 @@ def _fetch_indices() -> list[dict]:
 
 _idx_data = _fetch_indices()
 if _idx_data:
-    _idx_html_items = ""
+    _idx_cards_html = ""
     for _id in _idx_data:
         _ilast = _id["last"]
         _ichg  = _id["chg"]
         _up    = (_ichg or 0) >= 0
-        _icolor     = "#4ade80" if _up else "#f87171"
-        _ibg        = "rgba(34,197,94,0.08)"  if _up else "rgba(239,68,68,0.08)"
-        _iborder    = "rgba(34,197,94,0.2)"   if _up else "rgba(239,68,68,0.2)"
-        _ichg_str   = f"{_ichg:+.2f}%" if _ichg is not None else "—"
-        _ilast_str  = f"{_ilast:,.2f}" if _ilast else "—"
-        _arrow      = "▲" if _up else "▼"
-        _idx_html_items += f"""
-        <div class="idx-card" style="background:{_ibg};border-color:{_iborder}">
-            <div class="idx-header">
-                <span class="idx-flag">{_id['flag']}</span>
-                <span class="idx-name">{_id['label']}</span>
-            </div>
-            <div class="idx-price">{_ilast_str}</div>
-            <div class="idx-chg" style="color:{_icolor}">{_arrow} {_ichg_str}</div>
-            <div class="idx-bar-wrap">
-                <div class="idx-bar" style="background:{_icolor};width:{min(abs(_ichg or 0)*10, 100):.0f}%;opacity:0.5"></div>
-            </div>
+        _icolor    = "#34c759" if _up else "#ff3b30"
+        _ibg       = "#f1fbf4"  if _up else "#fff2f2"
+        _iborder   = "#c6f0d0"  if _up else "#ffd0ce"
+        _ichg_str  = f"{_ichg:+.2f}%" if _ichg is not None else "—"
+        _ilast_str = f"{_ilast:,.2f}"  if _ilast else "—"
+        _arrow     = "▲" if _up else "▼"
+        _bar_w     = min(abs(_ichg or 0) * 10, 100)
+        _idx_cards_html += f"""
+        <div class="ic" style="background:{_ibg};border-color:{_iborder}"
+             onmouseenter="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.09)'"
+             onmouseleave="this.style.transform='';this.style.boxShadow=''">
+          <div class="ic-hd"><span>{_id['flag']}</span><span class="ic-name">{_id['label']}</span></div>
+          <div class="ic-price">{_ilast_str}</div>
+          <div class="ic-chg" style="color:{_icolor}">{_arrow} {_ichg_str}</div>
+          <div class="ic-bar-bg"><div class="ic-bar" style="width:{_bar_w:.0f}%;background:{_icolor}"></div></div>
         </div>"""
 
-    st.markdown(f"""
+    _components.html(f"""
+<!DOCTYPE html><html><head>
 <style>
-.idx-row {{
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 10px;
-    margin-bottom: 1rem;
-}}
-@media (max-width: 900px) {{ .idx-row {{ grid-template-columns: repeat(3, 1fr); }} }}
-.idx-card {{
-    border: 1px solid;
-    border-radius: 14px;
-    padding: 14px 14px 10px;
-    text-align: center;
-    backdrop-filter: blur(8px);
-    transition: all 0.25s;
-    animation: float-up 0.4s ease both;
-    cursor: default;
-}}
-.idx-card:hover {{ transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }}
-.idx-header {{ display: flex; align-items: center; justify-content: center; gap: 5px; margin-bottom: 6px; }}
-.idx-flag {{ font-size: 1rem; }}
-.idx-name {{ font-size: 0.72rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }}
-.idx-price {{ font-size: 1.05rem; font-weight: 800; color: #f1f5f9; margin-bottom: 3px; }}
-.idx-chg {{ font-size: 0.82rem; font-weight: 700; margin-bottom: 6px; }}
-.idx-bar-wrap {{ height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }}
-.idx-bar {{ height: 100%; border-radius: 2px; transition: width 1s ease; }}
+*{{margin:0;padding:0;box-sizing:border-box;}}
+body{{background:transparent;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',sans-serif;}}
+@keyframes fadeUp{{from{{opacity:0;transform:translateY(8px)}}to{{opacity:1;transform:translateY(0)}}}}
+.row{{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;padding:2px;}}
+.ic{{border:1px solid;border-radius:14px;padding:14px 12px 10px;text-align:center;
+     transition:transform .25s ease,box-shadow .25s ease;cursor:default;
+     animation:fadeUp .4s ease both;}}
+.ic-hd{{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:6px;}}
+.ic-name{{font-size:10px;color:#6e6e73;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}}
+.ic-price{{font-size:1rem;font-weight:800;color:#1d1d1f;margin-bottom:3px;}}
+.ic-chg{{font-size:.8rem;font-weight:700;margin-bottom:7px;}}
+.ic-bar-bg{{height:3px;background:#e5e5ea;border-radius:2px;overflow:hidden;}}
+.ic-bar{{height:100%;border-radius:2px;transition:width 1s ease;}}
 </style>
-<div class="idx-row">
-{_idx_html_items}
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown('<div style="height:4px;background:linear-gradient(90deg,transparent,rgba(56,189,248,0.2),transparent);border-radius:2px;margin:0.8rem 0 1.2rem"></div>', unsafe_allow_html=True)
+</head><body>
+<div class="row">{_idx_cards_html}</div>
+</body></html>
+""", height=115, scrolling=False)
 
 
 # ─── 공통 테이블·차트 헬퍼 (모든 섹션에서 공유) ───────────────────────────────────
