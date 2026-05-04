@@ -2,223 +2,233 @@
   "반도체": {
     "article_count": 13,
     "top_keywords": [
-      "메모리"
+      "TSMC"
     ],
-    "forward_keyword_hits": 53,
-    "risk_keyword_hits": 11,
-    "forward_ratio": 0.815,
-    "sentiment_score": 0.442,
+    "forward_keyword_hits": 35,
+    "risk_keyword_hits": 4,
+    "forward_ratio": 0.875,
+    "sentiment_score": 0.778,
     "avg_change_rate": -0.1,
     "advancing_ratio": 30.4,
-    "composite_score": 0.556,
-    "forward_score": 0.912,
-    "composite_6m": 0.789,
+    "composite_score": 0.623,
+    "forward_score": 0.742,
+    "composite_6m": 0.783,
     "highlight": true,
-    "highlight_reason": "뉴스 전망 언급 53건 | 감성 긍정 | 핵심 이슈: 메모리 | 상승종목비율 30%"
+    "highlight_reason": "뉴스 전망 언급 35건 | 감성 긍정 | 핵심 이슈: TSMC | 상승종목비율 30%"
   },
   "2차전지": {
     "article_count": 2,
     "top_keywords": [
       "배터리",
       "전기차",
-      "ESS"
+      "CATL"
     ],
-    "forward_keyword_hits": 7,
-    "risk_keyword_hits": 4,
-    "forward_ratio": 0.583,
-    "sentiment_score": 0.0,
+    "forward_keyword_hits": 8,
+    "risk_keyword_hits": 0,
+    "forward_ratio": 0.889,
+    "sentiment_score": 1.0,
     "avg_change_rate": null,
     "advancing_ratio": null,
-    "composite_score": 0.5,
-    "forward_score": 0.652,
-    "composite_6m": 0.411,
+    "composite_score": 1.0,
+    "forward_score": 0.804,
+    "composite_6m": 0.772,
     "highlight": false,
     "highlight_reason": ""
   },
   "바이오": {
-    "article_count": 13,
+    "article_count": 7,
     "top_keywords": [
-      "유전자"
+      "유전자",
+      "신약",
+      "치료제",
+      "허가"
     ],
     "forward_keyword_hits": 14,
-    "risk_keyword_hits": 4,
-    "forward_ratio": 0.737,
-    "sentiment_score": 0.2,
+    "risk_keyword_hits": 0,
+    "forward_ratio": 0.933,
+    "sentiment_score": 1.0,
     "avg_change_rate": -1.38,
     "advancing_ratio": 15.4,
-    "composite_score": 0.48,
-    "forward_score": 0.824,
-    "composite_6m": 0.451,
-    "highlight": false,
-    "highlight_reason": ""
+    "composite_score": 0.64,
+    "forward_score": 1.0,
+    "composite_6m": 0.761,
+    "highlight": true,
+    "highlight_reason": "뉴스 전망 언급 14건 | 감성 긍정 | 핵심 이슈: 유전자, 신약, 치료제 | 상승종목비율 15%"
   },
   "자동차": {
-    "article_count": 10,
+    "article_count": 15,
     "top_keywords": [
-      "전기차",
-      "수출",
-      "기아"
+      "현대차",
+      "기아",
+      "전기차"
     ],
-    "forward_keyword_hits": 19,
-    "risk_keyword_hits": 7,
-    "forward_ratio": 0.704,
-    "sentiment_score": 0.059,
+    "forward_keyword_hits": 28,
+    "risk_keyword_hits": 8,
+    "forward_ratio": 0.757,
+    "sentiment_score": 0.571,
     "avg_change_rate": -0.96,
     "advancing_ratio": 21.3,
-    "composite_score": 0.536,
-    "forward_score": 0.787,
-    "composite_6m": 0.476,
+    "composite_score": 0.639,
+    "forward_score": 0.218,
+    "composite_6m": 0.327,
     "highlight": false,
     "highlight_reason": ""
   },
   "금융": {
-    "article_count": 61,
+    "article_count": 75,
     "top_keywords": [
-      "보험",
       "금리",
+      "보험",
       "대출",
-      "펀드",
-      "리츠"
+      "예금",
+      "펀드"
     ],
-    "forward_keyword_hits": 138,
-    "risk_keyword_hits": 50,
-    "forward_ratio": 0.73,
-    "sentiment_score": 0.26,
+    "forward_keyword_hits": 116,
+    "risk_keyword_hits": 28,
+    "forward_ratio": 0.8,
+    "sentiment_score": 0.584,
     "avg_change_rate": -1.04,
     "advancing_ratio": 18.8,
-    "composite_score": 0.475,
-    "forward_score": 0.817,
-    "composite_6m": 0.523,
-    "highlight": false,
-    "highlight_reason": ""
-  },
-  "에너지": {
-    "article_count": 14,
-    "top_keywords": [
-      "원유",
-      "전력",
-      "수소"
-    ],
-    "forward_keyword_hits": 25,
-    "risk_keyword_hits": 14,
-    "forward_ratio": 0.625,
-    "sentiment_score": 0.304,
-    "avg_change_rate": -0.95,
-    "advancing_ratio": 31.6,
-    "composite_score": 0.511,
-    "forward_score": 0.699,
-    "composite_6m": 0.589,
-    "highlight": true,
-    "highlight_reason": "뉴스 전망 언급 25건 | 감성 긍정 | 핵심 이슈: 원유, 전력, 수소 | 상승종목비율 32%"
-  },
-  "통신": {
-    "article_count": 7,
-    "top_keywords": [
-      "AI",
-      "5G",
-      "클라우드"
-    ],
-    "forward_keyword_hits": 16,
-    "risk_keyword_hits": 7,
-    "forward_ratio": 0.667,
-    "sentiment_score": 0.167,
-    "avg_change_rate": -1.43,
-    "advancing_ratio": 21.4,
-    "composite_score": 0.445,
-    "forward_score": 0.746,
-    "composite_6m": 0.448,
-    "highlight": false,
-    "highlight_reason": ""
-  },
-  "철강": {
-    "article_count": 3,
-    "top_keywords": [
-      "철강",
-      "포스코"
-    ],
-    "forward_keyword_hits": 1,
-    "risk_keyword_hits": 0,
-    "forward_ratio": 0.5,
-    "sentiment_score": 0.333,
-    "avg_change_rate": -1.27,
-    "advancing_ratio": 20.3,
-    "composite_score": 0.472,
-    "forward_score": 0.559,
-    "composite_6m": 0.43,
-    "highlight": false,
-    "highlight_reason": ""
-  },
-  "화학": {
-    "article_count": 2,
-    "top_keywords": [
-      "석유화학"
-    ],
-    "forward_keyword_hits": 0,
-    "risk_keyword_hits": 0,
-    "forward_ratio": 0.0,
-    "sentiment_score": 1.0,
-    "avg_change_rate": -1.55,
-    "advancing_ratio": 20.9,
-    "composite_score": 0.61,
-    "forward_score": 0.0,
+    "composite_score": 0.54,
+    "forward_score": 0.409,
     "composite_6m": 0.384,
     "highlight": false,
     "highlight_reason": ""
   },
+  "에너지": {
+    "article_count": 33,
+    "top_keywords": [
+      "원유",
+      "재생에너지",
+      "태양광",
+      "풍력",
+      "수소"
+    ],
+    "forward_keyword_hits": 51,
+    "risk_keyword_hits": 20,
+    "forward_ratio": 0.708,
+    "sentiment_score": 0.387,
+    "avg_change_rate": -0.95,
+    "advancing_ratio": 31.6,
+    "composite_score": 0.527,
+    "forward_score": 0.0,
+    "composite_6m": 0.227,
+    "highlight": false,
+    "highlight_reason": ""
+  },
+  "통신": {
+    "article_count": 14,
+    "top_keywords": [
+      "AI",
+      "클라우드"
+    ],
+    "forward_keyword_hits": 28,
+    "risk_keyword_hits": 5,
+    "forward_ratio": 0.824,
+    "sentiment_score": 0.462,
+    "avg_change_rate": -1.43,
+    "advancing_ratio": 21.4,
+    "composite_score": 0.504,
+    "forward_score": 0.516,
+    "composite_6m": 0.35,
+    "highlight": false,
+    "highlight_reason": ""
+  },
+  "철강": {
+    "article_count": 5,
+    "top_keywords": [
+      "철강",
+      "중국",
+      "포스코"
+    ],
+    "forward_keyword_hits": 14,
+    "risk_keyword_hits": 3,
+    "forward_ratio": 0.778,
+    "sentiment_score": 0.571,
+    "avg_change_rate": -1.27,
+    "advancing_ratio": 20.3,
+    "composite_score": 0.52,
+    "forward_score": 0.311,
+    "composite_6m": 0.328,
+    "highlight": false,
+    "highlight_reason": ""
+  },
+  "화학": {
+    "article_count": 5,
+    "top_keywords": [
+      "플라스틱",
+      "석유화학"
+    ],
+    "forward_keyword_hits": 11,
+    "risk_keyword_hits": 2,
+    "forward_ratio": 0.786,
+    "sentiment_score": 0.6,
+    "avg_change_rate": -1.55,
+    "advancing_ratio": 20.9,
+    "composite_score": 0.53,
+    "forward_score": 0.347,
+    "composite_6m": 0.333,
+    "highlight": false,
+    "highlight_reason": ""
+  },
   "IT서비스": {
-    "article_count": 25,
+    "article_count": 47,
     "top_keywords": [
       "AI",
       "플랫폼",
       "클라우드"
     ],
-    "forward_keyword_hits": 59,
-    "risk_keyword_hits": 6,
-    "forward_ratio": 0.894,
-    "sentiment_score": 0.5,
+    "forward_keyword_hits": 87,
+    "risk_keyword_hits": 8,
+    "forward_ratio": 0.906,
+    "sentiment_score": 0.633,
     "avg_change_rate": -0.87,
     "advancing_ratio": 21.3,
-    "composite_score": 0.575,
-    "forward_score": 1.0,
-    "composite_6m": 0.702,
+    "composite_score": 0.601,
+    "forward_score": 0.88,
+    "composite_6m": 0.63,
     "highlight": true,
-    "highlight_reason": "뉴스 전망 언급 59건 | 감성 긍정 | 핵심 이슈: AI, 플랫폼, 클라우드 | 상승종목비율 21%"
+    "highlight_reason": "뉴스 전망 언급 87건 | 감성 긍정 | 핵심 이슈: AI, 플랫폼, 클라우드 | 상승종목비율 21%"
   },
   "건설": {
-    "article_count": 23,
+    "article_count": 42,
     "top_keywords": [
       "분양",
+      "수주",
+      "재개발",
       "인프라",
-      "재개발"
+      "PF"
     ],
-    "forward_keyword_hits": 29,
-    "risk_keyword_hits": 11,
-    "forward_ratio": 0.707,
-    "sentiment_score": 0.5,
+    "forward_keyword_hits": 84,
+    "risk_keyword_hits": 26,
+    "forward_ratio": 0.757,
+    "sentiment_score": 0.484,
     "avg_change_rate": -1.66,
     "advancing_ratio": 10.6,
-    "composite_score": 0.446,
-    "forward_score": 0.791,
-    "composite_6m": 0.466,
+    "composite_score": 0.443,
+    "forward_score": 0.218,
+    "composite_6m": 0.142,
     "highlight": false,
     "highlight_reason": ""
   },
   "유통": {
-    "article_count": 18,
+    "article_count": 12,
     "top_keywords": [
       "소비",
       "온라인",
-      "오프라인"
+      "물가",
+      "오프라인",
+      "이커머스"
     ],
-    "forward_keyword_hits": 23,
-    "risk_keyword_hits": 9,
-    "forward_ratio": 0.697,
-    "sentiment_score": 0.2,
+    "forward_keyword_hits": 24,
+    "risk_keyword_hits": 6,
+    "forward_ratio": 0.774,
+    "sentiment_score": 0.368,
     "avg_change_rate": -0.93,
     "advancing_ratio": 20.7,
-    "composite_score": 0.463,
-    "forward_score": 0.78,
-    "composite_6m": 0.514,
+    "composite_score": 0.497,
+    "forward_score": 0.293,
+    "composite_6m": 0.26,
     "highlight": false,
     "highlight_reason": ""
   }
