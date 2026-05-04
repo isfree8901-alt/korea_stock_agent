@@ -13,16 +13,33 @@ from matplotlib.backends.backend_pdf import PdfPages
 # ─── 한글 폰트 설정 ───────────────────────────────────────────────────────────
 
 def _setup_korean_font() -> None:
-    candidates = ["AppleGothic", "Nanum Myeongjo", "Nanum Gothic",
-                  "Malgun Gothic", "NanumGothic", "DejaVu Sans"]
-    for name in candidates:
-        try:
-            found = fm.findfont(fm.FontProperties(family=name), fallback_to_default=False)
-            if found and "DejaVu" not in found:
-                plt.rcParams["font.family"] = name
+    import os
+    # 파일 경로 기반 직접 등록 (family 이름 탐색보다 안정적)
+    path_candidates = [
+        "/System/Library/Fonts/AppleSDGothicNeo.ttc",              # macOS
+        "/System/Library/Fonts/Supplemental/AppleGothic.ttf",      # macOS 보조
+        "/System/Library/Fonts/Supplemental/AppleMyungjo.ttf",     # macOS 보조
+        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",         # Ubuntu (fonts-nanum)
+        "/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf",     # Ubuntu 보조
+        "/usr/share/fonts/nanum/NanumGothic.ttf",                  # CentOS
+        "C:/Windows/Fonts/malgun.ttf",                              # Windows
+        "C:/Windows/Fonts/NanumGothic.ttf",                        # Windows + Nanum
+    ]
+    for path in path_candidates:
+        if os.path.exists(path):
+            fm.fontManager.addfont(path)
+            prop = fm.FontProperties(fname=path)
+            plt.rcParams["font.family"] = prop.get_name()
+            break
+    else:
+        # 마지막 수단: 시스템 폰트 중 한글 폰트 탐색
+        for font_path in fm.findSystemFonts():
+            basename = os.path.basename(font_path).lower()
+            if any(k in basename for k in ["nanum", "gothic", "hangul", "malgun", "applesd"]):
+                fm.fontManager.addfont(font_path)
+                prop = fm.FontProperties(fname=font_path)
+                plt.rcParams["font.family"] = prop.get_name()
                 break
-        except Exception:
-            continue
     plt.rcParams["axes.unicode_minus"] = False
 
 _setup_korean_font()
