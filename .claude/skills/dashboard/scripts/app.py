@@ -1489,8 +1489,8 @@ def _fetch_kr_chart_data(ticker: str, max_load: int = 520) -> "pd.DataFrame | No
 
 def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
     """캔들스틱 + MA + 추세선 + 매매 신호. historical CSV → yfinance → pykrx 순서로 데이터 수집."""
-    # ── 1. 최대 2년치 로드 ─────────────────────────────────────────────────
-    _MAX_LOAD = 520
+    # ── 1. 최대 5년치 로드 (월봉 대응) ──────────────────────────────────
+    _MAX_LOAD = 1300
     df_full = _fetch_kr_chart_data(ticker, _MAX_LOAD)
     if df_full is None or df_full.empty:
         st.warning(f"{name}({ticker}) 차트 데이터를 불러올 수 없습니다.")
@@ -1507,25 +1507,59 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
             (df_full["Close"] >= _roll_med * 0.2)
         )
         df_full = df_full[_spike_mask].reset_index(drop=True)
+    df_full = df_full.sort_values("Date").reset_index(drop=True)
 
     # ── 2. 컨트롤 ────────────────────────────────────────────────────────────
-    _c1, _c2, _c3 = st.columns([2, 4, 2])
+    _c1, _c2, _c3 = st.columns([2, 5, 2])
     with _c1:
-        _period = st.radio("기간", ["1개월", "3개월", "6개월", "1년", "2년"],
-                           index=3, horizontal=True, key=f"cp_{ticker}")
+        _tf = st.radio("봉 단위", ["일", "주", "월"],
+                       index=0, horizontal=True, key=f"tf_{ticker}")
     with _c2:
-        _ma_sel = st.multiselect("이동평균선",
-                                 ["5일", "20일", "60일", "120일"],
-                                 default=["20일", "60일"],
-                                 key=f"ma_{ticker}")
+        if _tf == "일":
+            _ma_opts = ["5일", "20일", "60일", "120일"]
+            _ma_def  = ["5일", "20일", "60일", "120일"]
+            _ma_days = {"5일": 5, "20일": 20, "60일": 60, "120일": 120}
+            _ma_clrs = {"5일": "#22c55e", "20일": "#ef4444", "60일": "#f97316", "120일": "#8b5cf6"}
+        elif _tf == "주":
+            _ma_opts = ["5주", "10주", "20주", "52주"]
+            _ma_def  = ["5주", "10주", "20주", "52주"]
+            _ma_days = {"5주": 5, "10주": 10, "20주": 20, "52주": 52}
+            _ma_clrs = {"5주": "#22c55e", "10주": "#ef4444", "20주": "#f97316", "52주": "#8b5cf6"}
+        else:
+            _ma_opts = ["3개월", "6개월", "12개월", "24개월"]
+            _ma_def  = ["3개월", "6개월", "12개월", "24개월"]
+            _ma_days = {"3개월": 3, "6개월": 6, "12개월": 12, "24개월": 24}
+            _ma_clrs = {"3개월": "#22c55e", "6개월": "#ef4444", "12개월": "#f97316", "24개월": "#8b5cf6"}
+        _ma_sel = st.multiselect("이동평균선", _ma_opts, default=_ma_def,
+                                  key=f"ma_{ticker}_{_tf}")
     with _c3:
         _show_trend = st.checkbox("저항선·지지선", value=True, key=f"tr_{ticker}")
 
-    _n = {"1개월": 21, "3개월": 63, "6개월": 126, "1년": 252, "2년": 504}[_period]
-    df = df_full.tail(_n).reset_index(drop=True)
+    # ── 2b. 봉 단위 리샘플 ────────────────────────────────────────────────────
+    _agg_spec = {"Open": "first", "High": "max", "Low": "min", "Close": "last"}
+    if "Volume" in df_full.columns:
+        _agg_spec["Volume"] = "sum"
+
+    if _tf == "주":
+        df_rs = (
+            df_full.set_index("Date").resample("W-FRI")
+            .agg(_agg_spec).dropna(subset=["Close"]).reset_index()
+        )
+        _n = 104
+    elif _tf == "월":
+        df_rs = (
+            df_full.set_index("Date").resample("ME")
+            .agg(_agg_spec).dropna(subset=["Close"]).reset_index()
+        )
+        _n = 60
+    else:
+        df_rs = df_full.copy()
+        _n = 252
+
+    df = df_rs.tail(_n).reset_index(drop=True)
     has_ohlc = all(c in df.columns for c in ["Open", "High", "Low", "Close"])
 
-    # ── 2b. OHLC 요약 헤더 (이미지 스타일) ──────────────────────────────────
+    # ── 2c. OHLC 요약 헤더 (이미지 스타일) ──────────────────────────────────
     if has_ohlc and len(df) >= 2:
         _lc = df["Close"].iloc[-1]; _lo = df["Open"].iloc[-1]
         _lh = df["High"].iloc[-1];  _ll = df["Low"].iloc[-1]
@@ -1536,9 +1570,17 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
         _chp_color = "#b91c1c" if _chp >= 0 else "#1d4ed8"
         _chp_arrow = "▼" if _chp < 0 else "▲"
         _vol_str = f"{_vol:,}" if _vol else "-"
-        # 기간 내 최고·최저
-        _period_high = df["High"].max(); _period_low = df["Low"].min()
-        _ph_ratio = ((_lc - _period_low) / (_period_high - _period_low) * 100) if _period_high != _period_low else 50
+        # MA 범례 HTML (이미지 스타일: 이동평균 5 20 60 120)
+        _ma_legend_parts = []
+        for _m in _ma_opts:
+            _col = _ma_clrs[_m]
+            _label = _m.replace("일", "").replace("주", "").replace("개월", "")
+            _fw = "700" if _m in _ma_sel else "400"
+            _op = "1" if _m in _ma_sel else "0.3"
+            _ma_legend_parts.append(
+                f'<span style="color:{_col};font-weight:{_fw};opacity:{_op}">{_label}</span>'
+            )
+        _ma_legend_html = " &nbsp; ".join(_ma_legend_parts)
         st.markdown(
             f'<div style="background:#f8f9fa;border-radius:12px;padding:10px 16px;margin-bottom:8px;'
             f'font-family:-apple-system,BlinkMacSystemFont,sans-serif;">'
@@ -1549,7 +1591,8 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
             f'종 <b style="color:{_chp_color}">{int(_lc):,}</b> &nbsp; '
             f'<b style="color:{_chp_color}">{_chp_arrow} {abs(_ch):,.0f} ({abs(_chp):.2f}%)</b> &nbsp; '
             f'거 {_vol_str}'
-            f'</span>'
+            f'</span><br>'
+            f'<span style="font-size:11px;color:#6b7280">이동평균 {_ma_legend_html}</span>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -1575,15 +1618,40 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
                                  line=dict(color="#1e40af", width=2)), row=1, col=1)
 
     # ── 5. 이동평균선 ─────────────────────────────────────────────────────────
-    _ma_color = {"5일": "#f59e0b", "20일": "#3b82f6", "60일": "#8b5cf6", "120일": "#ef4444"}
-    _ma_days  = {"5일": 5, "20일": 20, "60일": 60, "120일": 120}
     for _m in _ma_sel:
         _p = _ma_days[_m]
-        _ma_vals = df_full["Close"].rolling(_p).mean().tail(_n).values
+        _ma_vals = df_rs["Close"].rolling(_p).mean().tail(_n).values
         fig.add_trace(go.Scatter(
-            x=df["Date"], y=_ma_vals, mode="lines", name=f"MA{_p}",
-            line=dict(color=_ma_color[_m], width=1.5),
+            x=df["Date"], y=_ma_vals, mode="lines", name=_m,
+            line=dict(color=_ma_clrs[_m], width=1.5),
         ), row=1, col=1)
+
+    # ── 5b. 기간 최고·최저 어노테이션 ─────────────────────────────────────────
+    if has_ohlc and len(df) >= 5:
+        _ph_idx  = int(df["High"].idxmax())
+        _pl_idx  = int(df["Low"].idxmin())
+        _ph_val  = float(df["High"].iloc[_ph_idx])
+        _pl_val  = float(df["Low"].iloc[_pl_idx])
+        _ph_date = df["Date"].iloc[_ph_idx]
+        _pl_date = df["Date"].iloc[_pl_idx]
+        _ph_pct  = (_lc - _ph_val) / _ph_val * 100 if _ph_val else 0
+        _pl_pct  = (_pl_val - _lc) / _lc * 100 if _lc else 0
+        fig.add_annotation(
+            x=_ph_date, y=_ph_val,
+            text=f"<b>최고 {int(_ph_val):,}</b><br>({_ph_pct:+.2f}%)",
+            showarrow=True, arrowhead=2, arrowcolor="#374151", arrowwidth=1.5,
+            bgcolor="rgba(255,255,255,0.92)", bordercolor="#9ca3af", borderwidth=1,
+            font=dict(size=9, color="#374151"),
+            ax=0, ay=-38,
+        )
+        fig.add_annotation(
+            x=_pl_date, y=_pl_val,
+            text=f"<b>최저 {int(_pl_val):,}</b><br>({_pl_pct:+.2f}%)",
+            showarrow=True, arrowhead=2, arrowcolor="#374151", arrowwidth=1.5,
+            bgcolor="rgba(255,255,255,0.92)", bordercolor="#9ca3af", borderwidth=1,
+            font=dict(size=9, color="#374151"),
+            ax=0, ay=38,
+        )
 
     # ── 6. 추세선 + 매매 신호 ────────────────────────────────────────────────
     _resist_coef = None
@@ -1646,15 +1714,15 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
             _sv_p = float(np.polyval(_support_coef, _i-1)) if _support_coef is not None else None
             _rv_p = float(np.polyval(_resist_coef,  _i-1)) if _resist_coef  is not None else None
             _c = _close[_i]; _pc = _close[_i-1]
-            _lo = _lows[_i]; _hi = _highs[_i]
+            _lo_i = _lows[_i]; _hi = _highs[_i]
             _dt = df["Date"].iloc[_i]
 
             if _sv is not None:
                 if _pc >= _sv_p and _c < _sv:                          # 지지 이탈
-                    _bd_x.append(_dt); _bd_y.append(_lo * 0.975)
+                    _bd_x.append(_dt); _bd_y.append(_lo_i * 0.975)
                     _bd_hover.append(f"지지 이탈 ₩{int(_c):,} ({_dt})")
-                elif abs(_lo - _sv) / _sv <= _NEAR and _c >= _sv:     # 지지선 터치
-                    _buy_x.append(_dt); _buy_y.append(_lo * 0.985)
+                elif abs(_lo_i - _sv) / _sv <= _NEAR and _c >= _sv:   # 지지선 터치
+                    _buy_x.append(_dt); _buy_y.append(_lo_i * 0.985)
                     _buy_hover.append(f"지지선 터치 ₩{int(_c):,} ({_dt})")
 
             if _rv is not None:
@@ -1703,25 +1771,57 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
         fig.add_trace(go.Bar(
             x=df["Date"], y=df["Volume"], name="거래량",
             marker_color=_vol_c, showlegend=False,
+            marker_line_width=0,
         ), row=2, col=1)
-        fig.update_yaxes(title_text="거래량", tickformat=".2s", row=2, col=1)
+        fig.update_yaxes(
+            tickformat=".2s", side="right", zeroline=False,
+            showgrid=True, gridcolor="#f0f0f5",
+            row=2, col=1,
+        )
 
     # ── 8. 레이아웃 ───────────────────────────────────────────────────────────
     fig.update_layout(
         title=None,
         xaxis_rangeslider_visible=False,
-        height=520,
-        margin=dict(l=0, r=60, t=10, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0,
-                    font=dict(size=11), bgcolor="rgba(255,255,255,0.8)"),
+        height=590,
+        margin=dict(l=0, r=68, t=10, b=10),
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0,
+            font=dict(size=11), bgcolor="rgba(255,255,255,0.88)",
+            bordercolor="#e5e7eb", borderwidth=1,
+        ),
         paper_bgcolor="white", plot_bgcolor="white",
         hovermode="x unified",
+        hoverlabel=dict(bgcolor="rgba(255,255,255,0.96)", font_size=12, bordercolor="#e5e7eb"),
+        transition=dict(duration=450, easing="cubic-in-out"),
+        dragmode="zoom",
+        newshape=dict(line_color="#3b82f6"),
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#f0f0f5", gridwidth=1, zeroline=False,
-                     showspikes=True, spikecolor="#aaa", spikemode="across", spikethickness=1)
-    fig.update_yaxes(showgrid=True, gridcolor="#f0f0f5", gridwidth=1, row=1, col=1,
-                     side="right", zeroline=False)
-    st.plotly_chart(fig, use_container_width=True)
+    fig.update_xaxes(
+        showgrid=True, gridcolor="#f0f0f5", gridwidth=1, zeroline=False,
+        showspikes=True, spikecolor="#9ca3af", spikemode="across",
+        spikethickness=1, spikedash="solid",
+    )
+    fig.update_yaxes(
+        showgrid=True, gridcolor="#f0f0f5", gridwidth=1,
+        row=1, col=1, side="right", zeroline=False,
+        showspikes=True, spikecolor="#9ca3af", spikedash="solid", spikethickness=1,
+    )
+    st.plotly_chart(
+        fig, use_container_width=True,
+        config={
+            "scrollZoom": True,
+            "displayModeBar": True,
+            "modeBarButtonsToRemove": ["lasso2d", "select2d"],
+            "modeBarButtonsToAdd": ["drawline", "drawopenpath", "eraseshape"],
+            "displaylogo": False,
+            "toImageButtonOptions": {
+                "format": "png",
+                "filename": f"{ticker}_chart",
+                "scale": 2,
+            },
+        },
+    )
 
     # ── 9. 현재 신호 요약 카드 ────────────────────────────────────────────────
     if _show_trend and has_ohlc and (_resist_coef is not None or _support_coef is not None):
