@@ -39,13 +39,48 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parents[4]
 
 
-# ─── 비밀번호 인증 ────────────────────────────────────────────────────────────
+# ─── 인증 ────────────────────────────────────────────────────────────────────
 def _check_password() -> bool:
-    """Streamlit secrets에 password가 있으면 로그인 요구, 없으면 로컬 개발로 간주."""
+    """
+    인증 방식 (우선순위):
+      1. secrets.users dict  → 다중 유저 (username + password)
+      2. secrets.password    → 단일 비밀번호 (레거시, username="default")
+      3. 둘 다 없음          → 로컬 개발 모드 (username="local")
+    """
     try:
-        required_pwd = st.secrets["password"]
-    except (KeyError, FileNotFoundError):
-        return True  # 로컬 개발: secrets 없으면 인증 생략
+        _sec = st.secrets
+    except (FileNotFoundError, Exception):
+        st.session_state.setdefault("_username", "local")
+        return True  # 로컬 개발: secrets 파일 없음
+
+    # ── 다중 유저 모드 ────────────────────────────────────────────────────────
+    users_dict: dict = {}
+    try:
+        users_dict = dict(_sec.get("users", {}))
+    except Exception:
+        pass
+
+    if users_dict:
+        if st.session_state.get("_authenticated"):
+            return True
+        st.title("🔒 Korea Stock Agent")
+        _u = st.text_input("사용자 ID", key="_login_user")
+        _p = st.text_input("비밀번호", type="password", key="_login_pwd")
+        if st.button("로그인", use_container_width=True):
+            if _u in users_dict and _p == users_dict[_u]:
+                st.session_state["_authenticated"] = True
+                st.session_state["_username"] = _u
+                st.rerun()
+            else:
+                st.error("사용자 ID 또는 비밀번호가 틀렸습니다.")
+        st.stop()
+        return False
+
+    # ── 단일 비밀번호 모드 (레거시) ───────────────────────────────────────────
+    required_pwd = _sec.get("password", "")
+    if not required_pwd:
+        st.session_state.setdefault("_username", "local")
+        return True  # secrets 있지만 password 키 없음 → 로컬로 간주
 
     if st.session_state.get("_authenticated"):
         return True
@@ -55,11 +90,17 @@ def _check_password() -> bool:
     if st.button("로그인", use_container_width=True):
         if pwd == required_pwd:
             st.session_state["_authenticated"] = True
+            st.session_state.setdefault("_username", "default")
             st.rerun()
         else:
             st.error("비밀번호가 틀렸습니다.")
     st.stop()
     return False
+
+
+def _get_username() -> str:
+    """현재 로그인 유저 ID. 로컬 개발 시 'local'."""
+    return st.session_state.get("_username", "local")
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", BASE_DIR / "output"))
 HISTORY_DIR = BASE_DIR / "data" / "portfolio_history"
 
@@ -95,45 +136,74 @@ RADAR_COLORS = ["#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6"]
 ACTION_LOG_PATH    = BASE_DIR / "data" / "action_log.json"
 ALLOC_PATH         = BASE_DIR / "data" / "asset_allocation.json"
 TRADE_NOTES_BASE   = BASE_DIR  # trade_note_manager가 BASE_DIR/data/trade_notes.json 사용
-TRADE_NOTES_GH_PATH = "data/trade_notes.json"  # GitHub 레포 내 경로
+# TRADE_NOTES_GH_PATH 는 _gh_path("trade_notes.json") 로 대체됨 (유저별 경로)
 WATCHLIST_PATH     = BASE_DIR / "data" / "watchlist.json"
 
 
+# ─── 유저별 GitHub 경로 헬퍼 ─────────────────────────────────────────────────
+
+def _gh_path(filename: str) -> str:
+    """data/users/{username}/{filename} 형태의 GitHub 경로 반환."""
+    return f"data/users/{_get_username()}/{filename}"
+
+
+# ─── 트레이드 노트 (유저별 GitHub 저장) ───────────────────────────────────────
+
 def _load_notes_smart() -> dict:
-    """GitHub 스토리지 우선, 없으면 로컬 파일. 세션 내 캐싱으로 API 호출 최소화."""
+    """GitHub(유저별 경로) 우선, 없으면 로컬 파일. 세션 내 캐싱."""
     if "_notes_cache" not in st.session_state:
         if _gh.is_available():
-            data = _gh.load(TRADE_NOTES_GH_PATH)
-            st.session_state["_notes_cache"] = data if data is not None else load_notes(TRADE_NOTES_BASE)
+            data = _gh.load(_gh_path("trade_notes.json"))
+            st.session_state["_notes_cache"] = (data if isinstance(data, dict) else {}) if data is not None else load_notes(TRADE_NOTES_BASE)
         else:
             st.session_state["_notes_cache"] = load_notes(TRADE_NOTES_BASE)
     return st.session_state["_notes_cache"]
 
 
 def _save_notes_smart(notes: dict) -> None:
-    """GitHub 저장 우선, 없으면 로컬 파일. 세션 캐시도 동시 갱신."""
+    """GitHub(유저별 경로) 저장 우선, 없으면 로컬 파일."""
     st.session_state["_notes_cache"] = notes
     if _gh.is_available():
-        if not _gh.save(TRADE_NOTES_GH_PATH, notes):
+        if not _gh.save(_gh_path("trade_notes.json"), notes, f"트레이드 노트 업데이트 [{_get_username()}]"):
             st.warning("⚠️ GitHub 저장 실패 — 로컬에 임시 저장됩니다.", icon="⚠️")
             save_notes(notes, TRADE_NOTES_BASE)
     else:
         save_notes(notes, TRADE_NOTES_BASE)
 
 
+# ─── 국내 관심 종목 (유저별 GitHub 저장) ─────────────────────────────────────
+
 def _load_watchlist() -> list[dict]:
+    """GitHub(유저별) 우선, 없으면 로컬 파일."""
     if "_wl_cache" not in st.session_state:
-        try:
-            st.session_state["_wl_cache"] = json.loads(WATCHLIST_PATH.read_text(encoding="utf-8")) if WATCHLIST_PATH.exists() else []
-        except Exception:
-            st.session_state["_wl_cache"] = []
+        if _gh.is_available():
+            data = _gh.load(_gh_path("watchlist.json"))
+            if isinstance(data, list):
+                st.session_state["_wl_cache"] = data
+            else:
+                # GitHub에 파일 없음 → 로컬 파일로 폴백
+                try:
+                    st.session_state["_wl_cache"] = json.loads(WATCHLIST_PATH.read_text(encoding="utf-8")) if WATCHLIST_PATH.exists() else []
+                except Exception:
+                    st.session_state["_wl_cache"] = []
+        else:
+            try:
+                st.session_state["_wl_cache"] = json.loads(WATCHLIST_PATH.read_text(encoding="utf-8")) if WATCHLIST_PATH.exists() else []
+            except Exception:
+                st.session_state["_wl_cache"] = []
     return st.session_state["_wl_cache"]
 
 
 def _save_watchlist(items: list[dict]) -> None:
     st.session_state["_wl_cache"] = items
-    WATCHLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    WATCHLIST_PATH.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+    if _gh.is_available():
+        if not _gh.save(_gh_path("watchlist.json"), items, f"관심종목 업데이트 [{_get_username()}]"):
+            st.warning("⚠️ GitHub 저장 실패 — 로컬에 임시 저장됩니다.", icon="⚠️")
+            WATCHLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+            WATCHLIST_PATH.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+    else:
+        WATCHLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+        WATCHLIST_PATH.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _wl_add(ticker: str, name: str, note: str = "", target_price: int = 0, group: str = "") -> bool:
@@ -171,21 +241,41 @@ def _wl_button(ticker: str, name: str, key_suffix: str = "") -> None:
 US_WATCHLIST_PATH = BASE_DIR / "data" / "us_watchlist.json"
 
 def _load_us_watchlist() -> list[dict]:
+    """GitHub(유저별) 우선, 없으면 로컬 파일."""
     if "_us_wl_cache" not in st.session_state:
-        try:
-            st.session_state["_us_wl_cache"] = (
-                json.loads(US_WATCHLIST_PATH.read_text(encoding="utf-8"))
-                if US_WATCHLIST_PATH.exists() else []
-            )
-        except Exception:
-            st.session_state["_us_wl_cache"] = []
+        if _gh.is_available():
+            data = _gh.load(_gh_path("us_watchlist.json"))
+            if isinstance(data, list):
+                st.session_state["_us_wl_cache"] = data
+            else:
+                try:
+                    st.session_state["_us_wl_cache"] = (
+                        json.loads(US_WATCHLIST_PATH.read_text(encoding="utf-8"))
+                        if US_WATCHLIST_PATH.exists() else []
+                    )
+                except Exception:
+                    st.session_state["_us_wl_cache"] = []
+        else:
+            try:
+                st.session_state["_us_wl_cache"] = (
+                    json.loads(US_WATCHLIST_PATH.read_text(encoding="utf-8"))
+                    if US_WATCHLIST_PATH.exists() else []
+                )
+            except Exception:
+                st.session_state["_us_wl_cache"] = []
     return st.session_state["_us_wl_cache"]
 
 
 def _save_us_watchlist(items: list[dict]) -> None:
     st.session_state["_us_wl_cache"] = items
-    US_WATCHLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    US_WATCHLIST_PATH.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+    if _gh.is_available():
+        if not _gh.save(_gh_path("us_watchlist.json"), items, f"미국 관심종목 업데이트 [{_get_username()}]"):
+            st.warning("⚠️ GitHub 저장 실패 — 로컬에 임시 저장됩니다.", icon="⚠️")
+            US_WATCHLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+            US_WATCHLIST_PATH.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+    else:
+        US_WATCHLIST_PATH.parent.mkdir(parents=True, exist_ok=True)
+        US_WATCHLIST_PATH.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def _us_wl_add(ticker: str, name: str, note: str = "", target_price: float = 0.0) -> bool:

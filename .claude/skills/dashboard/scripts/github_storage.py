@@ -1,13 +1,20 @@
 """
 GitHub API 기반 파일 스토리지.
-Streamlit Cloud에서 trade_notes.json을 GitHub 레포에 직접 커밋해 영속화.
+Streamlit Cloud에서 JSON 데이터를 GitHub 레포에 직접 커밋해 영속화.
 secrets에 GITHUB_TOKEN/OWNER/REPO가 없으면 로컬 파일 폴백.
+
+저장 경로 규칙:
+  data/users/{username}/watchlist.json       ← 유저별 국내 관심 종목
+  data/users/{username}/us_watchlist.json    ← 유저별 미국 관심 종목
+  data/users/{username}/trade_notes.json     ← 유저별 트레이드 노트
 """
 from __future__ import annotations
 
 import base64
 import json
 import os
+from typing import Any
+
 
 import requests
 
@@ -36,8 +43,8 @@ def is_available() -> bool:
     return _cfg() is not None
 
 
-def load(path: str) -> dict | None:
-    """GitHub에서 JSON 로드. 파일 없으면 {}, API 오류면 None."""
+def load(path: str) -> Any | None:
+    """GitHub에서 JSON 로드. 파일 없으면 None, API 오류면 None."""
     cfg = _cfg()
     if not cfg:
         return None
@@ -48,18 +55,18 @@ def load(path: str) -> dict | None:
     except Exception:
         return None
     if resp.status_code == 404:
-        return {}
+        return None   # 파일 없음 → None (호출자가 기본값 처리)
     if not resp.ok:
         return None
     raw = base64.b64decode(resp.json()["content"]).decode("utf-8")
     try:
         return json.loads(raw)
     except Exception:
-        return {}
+        return None
 
 
-def save(path: str, data: dict, message: str = "트레이드 노트 업데이트") -> bool:
-    """GitHub에 JSON 저장. 성공 여부 반환."""
+def save(path: str, data: Any, message: str = "데이터 업데이트") -> bool:
+    """GitHub에 JSON 저장. 성공 여부 반환. list/dict 모두 지원."""
     cfg = _cfg()
     if not cfg:
         return False
