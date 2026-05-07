@@ -1291,7 +1291,7 @@ body{{background:transparent;font-family:-apple-system,BlinkMacSystemFont,'SF Pr
 }}
 .kc-icon{{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0;}}
 .kc-body{{flex:1;min-width:0;}}
-.kc-label{{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#8e8e93;font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}}
+.kc-label{{font-size:10px;color:#8e8e93;font-weight:600;margin-bottom:3px;word-break:keep-all;line-height:1.3;}}
 .kc-val{{font-size:1.65rem;font-weight:800;line-height:1;color:#1d1d1f;display:flex;align-items:baseline;gap:3px;}}
 .kc-unit{{font-size:.72rem;color:#8e8e93;font-weight:500;}}
 .kc-accent{{position:absolute;bottom:0;left:0;right:0;height:3px;opacity:.6;}}
@@ -1299,7 +1299,7 @@ body{{background:transparent;font-family:-apple-system,BlinkMacSystemFont,'SF Pr
 </head><body>
 <div class="row">{_kpi_html_cards}</div>
 </body></html>
-""", height=110, scrolling=False)
+""", height=125, scrolling=False)
 
 # ─── 글로벌 시장 지수 ─────────────────────────────────────────────────────────
 
@@ -1317,14 +1317,25 @@ def _fetch_indices() -> list[dict]:
         return []
     results = []
     for tkr, label, flag in _IDX_TICKERS:
+        last, prev, chg = None, None, None
         try:
+            # 1차: fast_info (빠르지만 가끔 None 반환)
             fi = _yf.Ticker(tkr).fast_info
             last = getattr(fi, "last_price",     None)
             prev = getattr(fi, "previous_close", None)
-            chg  = (last / prev - 1) * 100 if last and prev and prev != 0 else None
-            results.append({"label": label, "flag": flag, "last": last, "chg": chg})
+            # 2차: fast_info가 None이면 history로 폴백
+            if last is None or prev is None:
+                _h = _yf.Ticker(tkr).history(period="5d")
+                if _h is not None and len(_h) >= 2:
+                    last = float(_h["Close"].iloc[-1])
+                    prev = float(_h["Close"].iloc[-2])
+                elif _h is not None and len(_h) == 1:
+                    last = float(_h["Close"].iloc[-1])
+            if last and prev and prev != 0:
+                chg = (last / prev - 1) * 100
         except Exception:
-            results.append({"label": label, "flag": flag, "last": None, "chg": None})
+            pass
+        results.append({"label": label, "flag": flag, "last": last, "chg": chg})
     return results
 
 _idx_data = _fetch_indices()
@@ -1362,7 +1373,7 @@ body{{background:transparent;font-family:-apple-system,BlinkMacSystemFont,'SF Pr
      transition:transform .25s ease,box-shadow .25s ease;cursor:default;
      animation:fadeUp .4s ease both;}}
 .ic-hd{{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:6px;}}
-.ic-name{{font-size:10px;color:#6e6e73;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}}
+.ic-name{{font-size:10px;color:#6e6e73;font-weight:700;letter-spacing:.02em;}}
 .ic-price{{font-size:1rem;font-weight:800;color:#1d1d1f;margin-bottom:3px;}}
 .ic-chg{{font-size:.8rem;font-weight:700;margin-bottom:7px;}}
 .ic-bar-bg{{height:3px;background:#e5e5ea;border-radius:2px;overflow:hidden;}}
@@ -1422,33 +1433,65 @@ def _build_stock_rows(tickers: list[str]) -> list[dict]:
         rows = enrich_price_changes(rows, market_data_raw)
     return rows
 
-def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
-    """캔들스틱 + MA + 추세선 + 매매 신호. historical CSV → pykrx fallback."""
+@st.cache_data(show_spinner=False, ttl=1800)
+def _fetch_kr_chart_data(ticker: str, max_load: int = 520) -> "pd.DataFrame | None":
+    """한국 주식 OHLCV 데이터 수집. historical CSV → yfinance(.KS/.KQ) → pykrx 순서로 시도."""
     from datetime import timedelta
 
-    # ── 1. 최대 2년치 로드 ─────────────────────────────────────────────────
-    _MAX_LOAD = 520
     hist_path = BASE_DIR / "data" / "historical" / f"{ticker}.csv"
-    df_full = None
     if hist_path.exists():
         try:
-            df_full = pd.read_csv(hist_path, parse_dates=["Date"])
-            df_full = df_full.sort_values("Date").tail(_MAX_LOAD).reset_index(drop=True)
+            df = pd.read_csv(hist_path, parse_dates=["Date"])
+            df = df.sort_values("Date").tail(max_load).reset_index(drop=True)
+            if not df.empty and "Close" in df.columns:
+                return df
         except Exception:
-            df_full = None
-    if df_full is None or df_full.empty:
-        try:
-            from pykrx import stock as _ks
-            _end = datetime.now()
-            _start = _end - timedelta(days=_MAX_LOAD + 60)
-            _raw = _ks.get_market_ohlcv_by_date(_start.strftime("%Y%m%d"), _end.strftime("%Y%m%d"), ticker)
-            if _raw is not None and not _raw.empty:
-                _raw = _raw.reset_index()
-                _raw.columns = ["Date" if c == "날짜" else c for c in _raw.columns]
-                _raw = _raw.rename(columns={"시가": "Open", "고가": "High", "저가": "Low", "종가": "Close", "거래량": "Volume"})
-                df_full = _raw[["Date"] + [c for c in ["Open","High","Low","Close","Volume"] if c in _raw.columns]]
-        except Exception:
-            df_full = None
+            pass
+
+    # yfinance 시도: KOSPI(.KS) → KOSDAQ(.KQ)
+    if _YF_OK:
+        for _sfx in [".KS", ".KQ"]:
+            try:
+                _end = datetime.now()
+                _start = _end - timedelta(days=max_load + 90)
+                _yf_tkr = ticker + _sfx
+                _df = _yf.Ticker(_yf_tkr).history(
+                    start=_start.strftime("%Y-%m-%d"),
+                    end=_end.strftime("%Y-%m-%d"),
+                )
+                if _df is not None and not _df.empty:
+                    _df = _df.reset_index()
+                    _df["Date"] = pd.to_datetime(_df["Date"]).dt.tz_localize(None)
+                    _df = _df.rename(columns={c: c for c in _df.columns})
+                    for _col in ["Open", "High", "Low", "Close", "Volume"]:
+                        if _col not in _df.columns:
+                            _df[_col] = None
+                    return _df[["Date"] + [c for c in ["Open","High","Low","Close","Volume"] if c in _df.columns]].tail(max_load).reset_index(drop=True)
+            except Exception:
+                continue
+
+    # pykrx 폴백
+    try:
+        from pykrx import stock as _ks
+        _end = datetime.now()
+        _start = _end - timedelta(days=max_load + 60)
+        _raw = _ks.get_market_ohlcv_by_date(_start.strftime("%Y%m%d"), _end.strftime("%Y%m%d"), ticker)
+        if _raw is not None and not _raw.empty:
+            _raw = _raw.reset_index()
+            _raw.columns = ["Date" if c == "날짜" else c for c in _raw.columns]
+            _raw = _raw.rename(columns={"시가": "Open", "고가": "High", "저가": "Low", "종가": "Close", "거래량": "Volume"})
+            return _raw[["Date"] + [c for c in ["Open","High","Low","Close","Volume"] if c in _raw.columns]]
+    except Exception:
+        pass
+
+    return None
+
+
+def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
+    """캔들스틱 + MA + 추세선 + 매매 신호. historical CSV → yfinance → pykrx 순서로 데이터 수집."""
+    # ── 1. 최대 2년치 로드 ─────────────────────────────────────────────────
+    _MAX_LOAD = 520
+    df_full = _fetch_kr_chart_data(ticker, _MAX_LOAD)
     if df_full is None or df_full.empty:
         st.warning(f"{name}({ticker}) 차트 데이터를 불러올 수 없습니다.")
         return
@@ -1481,6 +1524,35 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
     _n = {"1개월": 21, "3개월": 63, "6개월": 126, "1년": 252, "2년": 504}[_period]
     df = df_full.tail(_n).reset_index(drop=True)
     has_ohlc = all(c in df.columns for c in ["Open", "High", "Low", "Close"])
+
+    # ── 2b. OHLC 요약 헤더 (이미지 스타일) ──────────────────────────────────
+    if has_ohlc and len(df) >= 2:
+        _lc = df["Close"].iloc[-1]; _lo = df["Open"].iloc[-1]
+        _lh = df["High"].iloc[-1];  _ll = df["Low"].iloc[-1]
+        _pc = df["Close"].iloc[-2]
+        _ch = _lc - _pc; _chp = (_ch / _pc * 100) if _pc else 0
+        _vol = int(df["Volume"].iloc[-1]) if "Volume" in df.columns else None
+        _date_str = str(df["Date"].iloc[-1])[:10]
+        _chp_color = "#b91c1c" if _chp >= 0 else "#1d4ed8"
+        _chp_arrow = "▼" if _chp < 0 else "▲"
+        _vol_str = f"{_vol:,}" if _vol else "-"
+        # 기간 내 최고·최저
+        _period_high = df["High"].max(); _period_low = df["Low"].min()
+        _ph_ratio = ((_lc - _period_low) / (_period_high - _period_low) * 100) if _period_high != _period_low else 50
+        st.markdown(
+            f'<div style="background:#f8f9fa;border-radius:12px;padding:10px 16px;margin-bottom:8px;'
+            f'font-family:-apple-system,BlinkMacSystemFont,sans-serif;">'
+            f'<span style="font-weight:700;font-size:15px">{name}</span>'
+            f'<span style="color:#6b7280;font-size:11px;margin-left:8px">({ticker}) · {_date_str} · KRX</span><br>'
+            f'<span style="font-size:12px;color:#374151">'
+            f'시 <b>{int(_lo):,}</b> &nbsp; 고 <b>{int(_lh):,}</b> &nbsp; 저 <b>{int(_ll):,}</b> &nbsp; '
+            f'종 <b style="color:{_chp_color}">{int(_lc):,}</b> &nbsp; '
+            f'<b style="color:{_chp_color}">{_chp_arrow} {abs(_ch):,.0f} ({abs(_chp):.2f}%)</b> &nbsp; '
+            f'거 {_vol_str}'
+            f'</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     # ── 3. Figure ─────────────────────────────────────────────────────────────
     has_vol = "Volume" in df.columns
@@ -1636,16 +1708,19 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
 
     # ── 8. 레이아웃 ───────────────────────────────────────────────────────────
     fig.update_layout(
-        title=f"{name} ({ticker})",
+        title=None,
         xaxis_rangeslider_visible=False,
-        height=590,
-        margin=dict(l=10, r=10, t=45, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
-                    font=dict(size=11)),
-        paper_bgcolor="white", plot_bgcolor="#fafafa",
+        height=520,
+        margin=dict(l=0, r=60, t=10, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0,
+                    font=dict(size=11), bgcolor="rgba(255,255,255,0.8)"),
+        paper_bgcolor="white", plot_bgcolor="white",
+        hovermode="x unified",
     )
-    fig.update_xaxes(showgrid=True, gridcolor="#e5e7eb", gridwidth=1)
-    fig.update_yaxes(showgrid=True, gridcolor="#e5e7eb", gridwidth=1, row=1, col=1)
+    fig.update_xaxes(showgrid=True, gridcolor="#f0f0f5", gridwidth=1, zeroline=False,
+                     showspikes=True, spikecolor="#aaa", spikemode="across", spikethickness=1)
+    fig.update_yaxes(showgrid=True, gridcolor="#f0f0f5", gridwidth=1, row=1, col=1,
+                     side="right", zeroline=False)
     st.plotly_chart(fig, use_container_width=True)
 
     # ── 9. 현재 신호 요약 카드 ────────────────────────────────────────────────
@@ -2619,35 +2694,75 @@ with _tab_market:
                     else:
                         st.info(f"전망 키워드 {fwd_hits}건 / 위험 키워드 {risk_hits}건 — 혼조세")
 
-                articles = news_preprocessed.get(sector, {}).get("articles", [])
-                if articles:
-                    st.markdown("**📰 관련 뉴스**")
-                    for art in articles:
+                # ── 섹터 키워드 기반 기사 필터링 (step1_news_raw.json) ──────────────
+                _raw_news_path = OUTPUT_DIR / "step1_news_raw.json"
+                _sector_articles: list[dict] = []
+                _sector_kws = [kw.lower() for kw in (t.get("top_keywords", []) or [])]
+                # 섹터명 자체도 검색 키워드에 포함
+                _sector_kws_full = _sector_kws + [sector.lower()]
+
+                if _raw_news_path.exists() and _sector_kws_full:
+                    try:
+                        _raw_all = json.loads(_raw_news_path.read_text(encoding="utf-8"))
+                        _scored: list[tuple[int, dict]] = []
+                        for _ra in _raw_all:
+                            _txt = ((_ra.get("title") or "") + " " + (_ra.get("content") or "")).lower()
+                            _score = sum(_txt.count(kw) for kw in _sector_kws_full)
+                            if _score > 0:
+                                _scored.append((_score, _ra))
+                        _scored.sort(key=lambda x: x[0], reverse=True)
+                        _sector_articles = [a for _, a in _scored[:10]]
+                    except Exception:
+                        pass
+
+                # 키워드 매칭 기사 없으면 preprocessed 기사로 폴백
+                if not _sector_articles:
+                    _sector_articles = [
+                        {"title": a.get("title", ""), "url": a.get("url", ""),
+                         "content": " ".join(a.get("key_sentences", [])) if isinstance(a.get("key_sentences"), list) else str(a.get("key_sentences", ""))}
+                        for a in news_preprocessed.get(sector, {}).get("articles", [])
+                    ]
+
+                if _sector_articles:
+                    # ── 기사 의견 종합 ────────────────────────────────────────────
+                    _pos_kws = ["성장", "확대", "수혜", "호재", "상승", "강세", "전망", "증가", "개선", "기대"]
+                    _neg_kws = ["하락", "리스크", "우려", "감소", "약세", "위험", "축소", "부진", "악화", "제재"]
+                    _all_text = " ".join((a.get("title", "") + " " + a.get("content", "")) for a in _sector_articles)
+                    _pos_cnt = sum(_all_text.count(k) for k in _pos_kws)
+                    _neg_cnt = sum(_all_text.count(k) for k in _neg_kws)
+                    _ratio = _pos_cnt / max(_pos_cnt + _neg_cnt, 1)
+                    _opinion_color = "#166534" if _ratio > 0.6 else "#7f1d1d" if _ratio < 0.4 else "#1e3a5f"
+                    _opinion_bg    = "#f0fdf4" if _ratio > 0.6 else "#fff1f2" if _ratio < 0.4 else "#eff6ff"
+                    _opinion_label = "긍정" if _ratio > 0.6 else "부정" if _ratio < 0.4 else "혼조"
+                    st.markdown(
+                        f'<div style="background:{_opinion_bg};border-radius:10px;padding:10px 14px;margin-bottom:10px;">'
+                        f'<b style="color:{_opinion_color}">📊 {len(_sector_articles)}건 기사 종합 의견: {_opinion_label}</b>'
+                        f' — 긍정 키워드 {_pos_cnt}건 / 부정 키워드 {_neg_cnt}건'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+
+                    st.markdown(f"**📰 관련 뉴스 Top {len(_sector_articles)} (키워드: {', '.join(t.get('top_keywords', [])[:3])})**")
+                    for _ai, art in enumerate(_sector_articles, 1):
                         title     = art.get("title", "")
                         url       = art.get("url", "").strip()
-                        sentences = art.get("key_sentences", [])
+                        content   = art.get("content", "") or " ".join(art.get("key_sentences", [])) if isinstance(art.get("key_sentences"), list) else ""
 
-                        # 제목 HTML 엔티티 + 태그 완전 제거
-                        clean_title = _html.unescape(
-                            re.sub(r"<[^>]+>", "", title)
-                        ).strip()
-
-                        # 내용 요약: HTML 태그/엔티티 완전 제거 후 120자 요약
-                        raw_sent = " ".join(sentences) if isinstance(sentences, list) else str(sentences)
-                        clean_content = _html.unescape(re.sub(r"<[^>]+>", " ", raw_sent))
+                        clean_title = _html.unescape(re.sub(r"<[^>]+>", "", title)).strip()
+                        clean_content = _html.unescape(re.sub(r"<[^>]+>", " ", content))
                         clean_content = re.sub(r"\s{2,}", " ", clean_content).strip()
-                        summary = (clean_content[:120] + "…") if len(clean_content) > 120 else clean_content
+                        summary = (clean_content[:200] + "…") if len(clean_content) > 200 else clean_content
                         if summary.strip() == clean_title.strip():
                             summary = ""
 
-                        # ① 제목 (굵게 출력)
-                        st.markdown(f"**• {clean_title}**")
-
-                        # ② 내용 요약 한 줄
+                        st.markdown(f"**{_ai}. {clean_title}**")
                         if summary:
                             st.caption(f"↳ {summary}")
-
-                        # ③ 원문 링크 (명시적으로 표시)
+                        src = art.get("source", "")
+                        pub = str(art.get("pub_date", ""))[:10]
+                        meta = " · ".join(x for x in [src, pub] if x)
+                        if meta:
+                            st.caption(f"📅 {meta}")
                         if url:
                             st.markdown(
                                 f'<a href="{_html.escape(url, quote=True)}" target="_blank"'
@@ -3687,14 +3802,17 @@ with _tab_news:
                     _b_title_en = _bn.get("title", "")
                     _b_date     = str(_bn.get("pub_date", ""))[:16]
                     _b_url      = _bn.get("url", "")
-                    _b_summ     = _bn.get("summary_ko", "")
+                    _b_summ_ko  = (_bn.get("summary_ko") or "").strip()
+                    _b_summ_en  = (_bn.get("summary_en") or "").strip()
                     with st.expander(f"#{_b_rank}  {_b_title_ko}", expanded=False):
                         st.markdown(
-                            f'<div style="font-size:13px;line-height:1.6">'
-                            f'<b>{_b_title_ko}</b><br>'
+                            f'<div style="font-size:13px;line-height:1.7;color:#1d1d1f">'
+                            f'<b style="font-size:14px">{_b_title_ko}</b><br>'
                             f'<span style="color:#6b7280;font-size:11px">Bloomberg · {_b_date}</span><br>'
                             f'<span style="color:#9ca3af;font-size:11px;font-style:italic">{_b_title_en}</span>'
-                            + (f'<br><br>{_b_summ}' if _b_summ else "")
+                            + (f'<br><br><span style="color:#374151">{_b_summ_ko}</span>' if _b_summ_ko else "")
+                            + (f'<br><br><details><summary style="font-size:11px;color:#9ca3af;cursor:pointer">영문 원문 요약 보기</summary>'
+                               f'<p style="font-size:11px;color:#6b7280;margin-top:6px">{_b_summ_en}</p></details>' if _b_summ_en else "")
                             + '</div>',
                             unsafe_allow_html=True,
                         )
@@ -3707,21 +3825,24 @@ with _tab_news:
             if not _nytimes_news:
                 st.info("NYTimes 데이터가 없습니다. 갱신 버튼을 눌러 주세요.")
             else:
-                st.caption(f"NYTimes Business/Economy RSS 기준 · 한국어 번역 · {len(_nytimes_news)}건")
+                st.caption(f"NYTimes Business/Economy RSS 기준 · 한국어 번역 (기사 본문 요약 포함) · {len(_nytimes_news)}건")
                 for _nn in _nytimes_news:
                     _n_rank     = _nn.get("rank", "")
                     _n_title_ko = _nn.get("title_ko", _nn.get("title", ""))
                     _n_title_en = _nn.get("title", "")
                     _n_date     = str(_nn.get("pub_date", ""))[:16]
                     _n_url      = _nn.get("url", "")
-                    _n_summ     = _nn.get("summary_ko", "")
+                    _n_summ_ko  = (_nn.get("summary_ko") or "").strip()
+                    _n_summ_en  = (_nn.get("summary_en") or "").strip()
                     with st.expander(f"#{_n_rank}  {_n_title_ko}", expanded=False):
                         st.markdown(
-                            f'<div style="font-size:13px;line-height:1.6">'
-                            f'<b>{_n_title_ko}</b><br>'
+                            f'<div style="font-size:13px;line-height:1.7;color:#1d1d1f">'
+                            f'<b style="font-size:14px">{_n_title_ko}</b><br>'
                             f'<span style="color:#6b7280;font-size:11px">NYTimes · {_n_date}</span><br>'
                             f'<span style="color:#9ca3af;font-size:11px;font-style:italic">{_n_title_en}</span>'
-                            + (f'<br><br>{_n_summ}' if _n_summ else "")
+                            + (f'<br><br><span style="color:#374151">{_n_summ_ko}</span>' if _n_summ_ko else "")
+                            + (f'<br><br><details><summary style="font-size:11px;color:#9ca3af;cursor:pointer">영문 원문 요약 보기</summary>'
+                               f'<p style="font-size:11px;color:#6b7280;margin-top:6px">{_n_summ_en}</p></details>' if _n_summ_en else "")
                             + '</div>',
                             unsafe_allow_html=True,
                         )

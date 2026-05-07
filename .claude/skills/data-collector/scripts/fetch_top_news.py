@@ -5,8 +5,8 @@ fetch_top_news.py
 
 - 국내  : 네이버 뉴스 경제 섹션 인기기사 Top 10 (BeautifulSoup 스크래핑)
           실패 시 한경·매경·연합뉴스·이데일리·뉴시스 RSS 폴백
-- 해외  : Bloomberg Markets RSS  Top 10
-         NYTimes Business RSS   Top 10
+- 해외  : Bloomberg Markets RSS  Top 10 (requests + feedparser, 원문 요약)
+         NYTimes Business RSS   Top 10 (기사 본문 스크래핑으로 5~6줄 요약)
 - 번역  : deep_translator.GoogleTranslator (없으면 원문 유지)
 - 출력  : output/step1_top_news.json
 """
@@ -22,7 +22,6 @@ import requests
 from bs4 import BeautifulSoup
 
 # ─── 경로 설정 ──────────────────────────────────────────────────────────────────
-# scripts → data-collector → skills → .claude → korea-stock-agent
 BASE_DIR = Path(__file__).resolve().parents[4]
 OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", str(BASE_DIR / "output")))
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -62,23 +61,25 @@ def _warn(msg: str) -> None:
         pass
 
 
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8",
+}
+
+
 # ─── 네이버 경제 인기기사 스크래핑 ────────────────────────────────────────────────
 NAVER_POPULAR_URL = (
     "https://news.naver.com/main/ranking/popularDay.naver"
     "?rankingType=popular&sectionId=101"
 )
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    )
-}
-
 
 def _parse_pub_date(raw: str) -> str:
-    """feedparser entry.published 또는 임의 문자열 → 'YYYY-MM-DD HH:MM' 변환."""
+    """feedparser entry.published → 'YYYY-MM-DD HH:MM' 변환."""
     if not raw:
         return ""
     try:
@@ -104,10 +105,8 @@ def fetch_domestic_naver() -> list[dict]:
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "lxml")
 
-        # 랭킹 리스트 컨테이너 탐색
         ranking_items = soup.select("ul.rankingnews_list li.rankingnews_list_item")
         if not ranking_items:
-            # 대안 선택자
             ranking_items = soup.select("ol.ranking_list li")
         if not ranking_items:
             ranking_items = soup.select("div.rankingnews_box ul li")
@@ -124,7 +123,6 @@ def fetch_domestic_naver() -> list[dict]:
             if not url.startswith("http"):
                 url = "https://news.naver.com" + url
 
-            # 언론사명 추출
             source_tag = item.select_one("span.rankingnews_name, em.media_name, span.name")
             source = source_tag.get_text(strip=True) if source_tag else "네이버뉴스"
 
@@ -167,7 +165,8 @@ def fetch_domestic_rss_fallback() -> list[dict]:
         if len(articles) >= 10:
             break
         try:
-            feed = feedparser.parse(feed_url)
+            raw = requests.get(feed_url, headers=HEADERS, timeout=10).text
+            feed = feedparser.parse(raw)
             for entry in feed.entries[:max(1, 10 - len(articles))]:
                 title = getattr(entry, "title", "")
                 url = getattr(entry, "link", "")
@@ -188,7 +187,6 @@ def fetch_domestic_rss_fallback() -> list[dict]:
         except Exception as e:
             _warn(f"RSS 폴백 실패 [{source_name}]: {e}")
 
-    # 순위 재부여
     for i, art in enumerate(articles[:10], start=1):
         art["rank"] = i
 
@@ -211,7 +209,7 @@ NYTIMES_RSS   = "https://rss.nytimes.com/services/xml/rss/nyt/Business.xml"
 
 
 def _html_strip(text: str) -> str:
-    """간단한 HTML 태그 제거."""
+    """HTML 태그 제거 후 텍스트 반환."""
     if not text:
         return ""
     try:
@@ -220,42 +218,136 @@ def _html_strip(text: str) -> str:
         return text
 
 
-def fetch_foreign_rss(feed_url: str, source_name: str, top_n: int = 10) -> list[dict]:
-    """해외 RSS 피드에서 Top N 기사 수집 + 한국어 번역."""
-    articles: list[dict] = []
+def _fetch_rss_with_requests(feed_url: str) -> feedparser.FeedParserDict:
+    """requests로 RSS XML을 먼저 내려받은 뒤 feedparser로 파싱 (User-Agent 적용)."""
     try:
-        feed = feedparser.parse(feed_url)
-        entries = feed.entries[:top_n]
-        for rank, entry in enumerate(entries, start=1):
-            title = getattr(entry, "title", "")
-            url   = getattr(entry, "link", "")
-            pub   = _parse_pub_date(getattr(entry, "published", ""))
-
-            # 요약 추출 (summary / description / media:text)
-            summary_raw = ""
-            if hasattr(entry, "summary"):
-                summary_raw = _html_strip(entry.summary)
-            elif hasattr(entry, "description"):
-                summary_raw = _html_strip(entry.description)
-
-            title_ko, t_ok_title = translate_ko(title)
-            summary_ko, t_ok_summ = translate_ko(summary_raw[:500] if summary_raw else "")
-
-            articles.append({
-                "rank": rank,
-                "title": title,
-                "title_ko": title_ko,
-                "summary_ko": summary_ko,
-                "url": url,
-                "source": source_name,
-                "source_type": "foreign",
-                "pub_date": pub,
-                "translated": t_ok_title or t_ok_summ,
-            })
-        print(f"[fetch_top_news] {source_name} {len(articles)}건 수집 (번역={'가능' if _TRANSLATOR_AVAILABLE else '불가'})")
+        resp = requests.get(feed_url, headers=HEADERS, timeout=15)
+        resp.raise_for_status()
+        return feedparser.parse(resp.text)
     except Exception as e:
-        _warn(f"{source_name} RSS 수집 실패: {e}")
+        _warn(f"RSS fetch 실패 [{feed_url}]: {e}")
+        return feedparser.parse("")
 
+
+def _fetch_nyt_article_body(url: str, max_chars: int = 1200) -> str:
+    """NYT 기사 본문 앞부분 스크래핑 (5~6줄 분량). 실패 시 빈 문자열 반환."""
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=12)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "lxml")
+        # NYT 본문 p 태그 — class에 'story' 포함 또는 article[data-testid] 안 p
+        paras = soup.select("article p") or soup.select("section[name='articleBody'] p") or soup.select("div.StoryBodyCompact p")
+        if not paras:
+            # 범용 폴백: 가장 긴 p 태그들
+            paras = sorted(soup.find_all("p"), key=lambda p: len(p.get_text()), reverse=True)[:8]
+        texts = []
+        total = 0
+        for p in paras:
+            t = p.get_text(separator=" ").strip()
+            if len(t) < 30:
+                continue
+            texts.append(t)
+            total += len(t)
+            if total >= max_chars:
+                break
+        return " ".join(texts)
+    except Exception:
+        return ""
+
+
+def fetch_bloomberg(top_n: int = 10) -> list[dict]:
+    """Bloomberg Markets RSS Top N 수집 + 번역. RSS 요약문을 5~6줄 분량으로 표시."""
+    articles: list[dict] = []
+    feed = _fetch_rss_with_requests(BLOOMBERG_RSS)
+    entries = feed.entries[:top_n]
+    for rank, entry in enumerate(entries, start=1):
+        title = getattr(entry, "title", "")
+        url   = getattr(entry, "link", "")
+        pub   = _parse_pub_date(getattr(entry, "published", ""))
+
+        # Bloomberg RSS는 summary 필드에 원문 요약 포함
+        summary_raw = ""
+        if hasattr(entry, "summary"):
+            summary_raw = _html_strip(entry.summary)
+        elif hasattr(entry, "description"):
+            summary_raw = _html_strip(entry.description)
+
+        # content:encoded 시도
+        if not summary_raw and hasattr(entry, "content"):
+            for c in entry.get("content", []):
+                if c.get("value"):
+                    summary_raw = _html_strip(c["value"])
+                    break
+
+        title_ko, t_ok_title = translate_ko(title)
+        # 요약문 전체 번역 (Bloomberg는 페이월로 원문 본문 접근 불가)
+        summary_ko, t_ok_summ = translate_ko(summary_raw[:800] if summary_raw else "")
+
+        articles.append({
+            "rank": rank,
+            "title": title,
+            "title_ko": title_ko,
+            "summary_en": summary_raw,
+            "summary_ko": summary_ko,
+            "url": url,
+            "source": "Bloomberg",
+            "source_type": "foreign",
+            "pub_date": pub,
+            "translated": t_ok_title or t_ok_summ,
+        })
+
+    print(f"[fetch_top_news] Bloomberg {len(articles)}건 수집 (번역={'가능' if _TRANSLATOR_AVAILABLE else '불가'})")
+    return articles
+
+
+def fetch_nytimes(top_n: int = 10) -> list[dict]:
+    """NYTimes Business RSS Top N 수집 + 기사 본문 스크래핑으로 5~6줄 요약 생성."""
+    articles: list[dict] = []
+    feed = _fetch_rss_with_requests(NYTIMES_RSS)
+    entries = feed.entries[:top_n]
+    for rank, entry in enumerate(entries, start=1):
+        title = getattr(entry, "title", "")
+        url   = getattr(entry, "link", "")
+        pub   = _parse_pub_date(getattr(entry, "published", ""))
+
+        # RSS description/summary
+        summary_raw = ""
+        if hasattr(entry, "summary"):
+            summary_raw = _html_strip(entry.summary)
+        elif hasattr(entry, "description"):
+            summary_raw = _html_strip(entry.description)
+
+        # NYT 기사 본문 스크래핑으로 보강 (RSS 요약이 짧을 때)
+        body_text = ""
+        if url and "nytimes.com" in url:
+            body_text = _fetch_nyt_article_body(url)
+
+        # RSS 요약 + 본문 앞부분 합쳐서 최대 1000자 구성
+        full_summary_en = summary_raw
+        if body_text and body_text.strip() != summary_raw.strip():
+            if summary_raw:
+                full_summary_en = summary_raw + "\n\n" + body_text
+            else:
+                full_summary_en = body_text
+        full_summary_en = full_summary_en[:1000]
+
+        title_ko, t_ok_title = translate_ko(title)
+        summary_ko, t_ok_summ = translate_ko(full_summary_en)
+
+        articles.append({
+            "rank": rank,
+            "title": title,
+            "title_ko": title_ko,
+            "summary_en": full_summary_en,
+            "summary_ko": summary_ko,
+            "url": url,
+            "source": "NYTimes",
+            "source_type": "foreign",
+            "pub_date": pub,
+            "translated": t_ok_title or t_ok_summ,
+        })
+
+    print(f"[fetch_top_news] NYTimes {len(articles)}건 수집 (번역={'가능' if _TRANSLATOR_AVAILABLE else '불가'})")
     return articles
 
 
@@ -265,8 +357,8 @@ def main() -> None:
     print(f"[fetch_top_news] 시작 — {fetched_at}")
 
     domestic  = fetch_domestic()
-    bloomberg = fetch_foreign_rss(BLOOMBERG_RSS, "Bloomberg", top_n=10)
-    nytimes   = fetch_foreign_rss(NYTIMES_RSS,   "NYTimes",   top_n=10)
+    bloomberg = fetch_bloomberg(top_n=10)
+    nytimes   = fetch_nytimes(top_n=10)
 
     result = {
         "fetched_at": fetched_at,
