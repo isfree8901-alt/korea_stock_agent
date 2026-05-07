@@ -1782,9 +1782,8 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
     # ── 8. 레이아웃 ───────────────────────────────────────────────────────────
     fig.update_layout(
         title=None,
-        xaxis_rangeslider_visible=False,
-        height=590,
-        margin=dict(l=0, r=68, t=10, b=10),
+        height=620,
+        margin=dict(l=0, r=68, t=10, b=0),
         legend=dict(
             orientation="h", yanchor="bottom", y=1.01, xanchor="left", x=0,
             font=dict(size=11), bgcolor="rgba(255,255,255,0.88)",
@@ -1794,26 +1793,42 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
         hovermode="x unified",
         hoverlabel=dict(bgcolor="rgba(255,255,255,0.96)", font_size=12, bordercolor="#e5e7eb"),
         transition=dict(duration=450, easing="cubic-in-out"),
-        dragmode="zoom",
+        # 기본 드래그 = 패닝(가로 스크롤), 스크롤 휠 = 줌
+        dragmode="pan",
         newshape=dict(line_color="#3b82f6"),
     )
     fig.update_xaxes(
         showgrid=True, gridcolor="#f0f0f5", gridwidth=1, zeroline=False,
         showspikes=True, spikecolor="#9ca3af", spikemode="across",
         spikethickness=1, spikedash="solid",
+        # 모든 x축 rangeslider 기본 비활성 → 아래에서 하단 축만 켬
+        rangeslider_visible=False,
     )
     fig.update_yaxes(
         showgrid=True, gridcolor="#f0f0f5", gridwidth=1,
         row=1, col=1, side="right", zeroline=False,
         showspikes=True, spikecolor="#9ca3af", spikedash="solid", spikethickness=1,
     )
+    # 하단 x축에만 rangeslider(미니맵) 표시
+    _rs_kw = dict(
+        visible=True, thickness=0.055,
+        bgcolor="#f8f9fa", bordercolor="#e5e7eb", borderwidth=1,
+    )
+    if has_vol:
+        fig.update_layout(xaxis2_rangeslider=_rs_kw)
+    else:
+        fig.update_layout(xaxis_rangeslider=_rs_kw)
+
     st.plotly_chart(
         fig, use_container_width=True,
         config={
-            "scrollZoom": True,
+            "scrollZoom": True,          # 스크롤 휠 = 줌
             "displayModeBar": True,
-            "modeBarButtonsToRemove": ["lasso2d", "select2d"],
-            "modeBarButtonsToAdd": ["drawline", "drawopenpath", "eraseshape"],
+            # 불필요한 버튼 제거, 줌/팬 토글 + 리셋 명시 유지
+            "modeBarButtonsToRemove": [
+                "lasso2d", "select2d", "autoScale2d", "hoverCompareCartesian",
+            ],
+            "modeBarButtonsToAdd": ["drawline", "eraseshape"],
             "displaylogo": False,
             "toImageButtonOptions": {
                 "format": "png",
@@ -1822,6 +1837,7 @@ def _render_stock_chart(ticker: str, name: str, days: int = 252) -> None:
             },
         },
     )
+    st.caption("드래그: 좌우 이동  |  스크롤 휠: 확대/축소  |  하단 슬라이더: 기간 이동  |  더블클릭: 초기화")
 
     # ── 9. 현재 신호 요약 카드 ────────────────────────────────────────────────
     if _show_trend and has_ohlc and (_resist_coef is not None or _support_coef is not None):
