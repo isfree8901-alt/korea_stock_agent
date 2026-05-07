@@ -16940,18 +16940,18 @@
     "missing_fields": []
   },
   "490470": {
-    "eps": null,
+    "eps": -1979.0,
     "per": null,
-    "pbr": null,
-    "roe": null,
-    "eps_growth": null,
-    "revenue_growth": null,
-    "debt_ratio": null,
-    "period": null,
+    "pbr": 7.0,
+    "roe": -25.49,
+    "eps_growth": 90.06,
+    "revenue_growth": 8.17,
+    "debt_ratio": 40.25,
+    "period": "2025_11011",
     "corp_name": "세미파이브",
-    "disclosure_warning": true,
+    "disclosure_warning": false,
     "missing_fields": [
-      "DART 공시 데이터 없음"
+      "per(EPS 음수—적자기업)"
     ]
   },
   "004360": {
@@ -37349,18 +37349,18 @@
     "missing_fields": []
   },
   "010040": {
-    "eps": -607.0,
+    "eps": null,
     "per": null,
-    "pbr": 0.46,
-    "roe": -12.52,
-    "eps_growth": -491.61,
-    "revenue_growth": -2.32,
-    "debt_ratio": 58.06,
-    "period": "2025_11011",
+    "pbr": null,
+    "roe": null,
+    "eps_growth": null,
+    "revenue_growth": null,
+    "debt_ratio": null,
+    "period": null,
     "corp_name": "한국내화",
-    "disclosure_warning": false,
+    "disclosure_warning": true,
     "missing_fields": [
-      "per(EPS 음수—적자기업)"
+      "DART 공시 데이터 없음"
     ]
   },
   "025540": {
