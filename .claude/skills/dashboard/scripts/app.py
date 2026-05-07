@@ -687,6 +687,57 @@ STEP_FILES = [
     ("STEP2-비율", "step2_financial_ratios.json"),
 ]
 
+# ─── LLM 헬퍼 ────────────────────────────────────────────────────────────────
+
+def _call_ollama(messages: list[dict], model: str | None = None, timeout: int = 90) -> str:
+    """Ollama /api/chat 동기 호출. 실패 시 오류 메시지 반환."""
+    import requests as _req
+
+    _host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+    _model = model or os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
+    try:
+        resp = _req.post(
+            f"{_host}/api/chat",
+            json={"model": _model, "messages": messages, "stream": False},
+            timeout=timeout,
+        )
+        resp.raise_for_status()
+        return resp.json().get("message", {}).get("content", "응답이 비어있습니다.")
+    except _req.exceptions.ConnectionError:
+        return "⚠️ Ollama 서버에 연결할 수 없습니다. `ollama serve` 를 먼저 실행해 주세요."
+    except _req.exceptions.Timeout:
+        return "⚠️ 응답 시간 초과 (90초). 모델 로딩 중이거나 쿼리가 너무 깁니다."
+    except Exception as e:
+        return f"⚠️ LLM 오류: {e}"
+
+
+def _build_dashboard_context() -> str:
+    """현재 대시보드 상태를 LLM 컨텍스트 문자열로 반환."""
+    lines: list[str] = [
+        f"[Korea Stock Agent 대시보드 현황 — {date.today().strftime('%Y-%m-%d')}]",
+        f"데이터 스텝 완료: {sum(1 for _, f in STEP_FILES if (OUTPUT_DIR / f).exists())}/{len(STEP_FILES)}",
+    ]
+    if themes_data:
+        hl = [krx_display_name(k) for k, v in themes_data.items() if v.get("highlight")]
+        lines.append(f"6개월 주목 섹터 ({len(hl)}개): {', '.join(hl[:6])}")
+    if rankings_data:
+        top3 = sorted(
+            rankings_data.keys(),
+            key=lambda s: sector_composite_score(s, sector_scores, themes_data),
+            reverse=True,
+        )[:3]
+        lines.append(f"섹터 점수 Top3: {', '.join(krx_display_name(s) for s in top3)}")
+    if market_data_raw:
+        kospi = market_data_raw.get("KOSPI", {})
+        if kospi:
+            lines.append(
+                f"KOSPI: {kospi.get('close', '?'):,} ({kospi.get('change_rate', 0):+.2f}%)"
+            )
+    if ratios_data:
+        lines.append(f"재무비율 수집 종목: {len(ratios_data)}개")
+    return "\n".join(lines)
+
+
 # ─── 사이드바 ─────────────────────────────────────────────────────────────────
 
 with st.sidebar:
@@ -723,21 +774,6 @@ with st.sidebar:
         if len(_sb_wl) > 10:
             st.caption(f"+ {len(_sb_wl)-10}개 더")
 
-    st.divider()
-    st.markdown("**🔧 표시 설정**")
-    compare_period = st.radio(
-        "Top10 순위 비교 기간",
-        ["1d", "7d", "15d", "30d"],
-        horizontal=True,
-        help="시총 Top10 테이블의 순위변동 비교 기준 기간",
-    )
-    selected_opt = st.selectbox(
-        "재무비율 섹터 필터",
-        sector_options,
-        key="fin_sector_filter",
-        help="재무비율 분석에 표시할 섹터를 선택하세요",
-    )
-
     st.markdown("---")
     st.markdown("### 📄 스코어카드 PDF")
 
@@ -757,6 +793,80 @@ with st.sidebar:
         )
     else:
         st.caption("데이터 없음 — 파이프라인 실행 후 사용 가능")
+
+    # ─── LLM 채팅 어시스턴트 ──────────────────────────────────────────────────
+    st.markdown("---")
+    _llm_model_name = os.getenv("OLLAMA_MODEL", "qwen2.5:32b")
+    st.markdown(f"**🤖 AI 분석 어시스턴트**")
+    st.caption(f"모델: `{_llm_model_name}`")
+
+    # 세션 상태 초기화
+    if "sb_llm_history" not in st.session_state:
+        st.session_state.sb_llm_history = []  # [{"role":"user"|"assistant", "content":"..."}]
+
+    # 채팅 이력 표시 (최근 6개)
+    _llm_hist = st.session_state.sb_llm_history
+    if _llm_hist:
+        _chat_html_parts = []
+        for _msg in _llm_hist[-6:]:
+            _is_user = _msg["role"] == "user"
+            _bg = "#1e3a5f" if _is_user else "#2d2d2d"
+            _align = "right" if _is_user else "left"
+            _icon = "👤" if _is_user else "🤖"
+            _text = str(_msg["content"])[:400].replace("<", "&lt;").replace(">", "&gt;")
+            _chat_html_parts.append(
+                f'<div style="text-align:{_align};margin:3px 0">'
+                f'<span style="background:{_bg};color:#f0f0f0;border-radius:8px;'
+                f'padding:5px 9px;font-size:11px;display:inline-block;max-width:95%;'
+                f'word-break:keep-all;line-height:1.4">'
+                f'{_icon} {_text}</span></div>'
+            )
+        st.markdown("\n".join(_chat_html_parts), unsafe_allow_html=True)
+        st.markdown("")
+
+    # 빠른 액션 버튼
+    _qa_col1, _qa_col2 = st.columns(2)
+    with _qa_col1:
+        if st.button("📊 시장 요약", key="llm_mkt", use_container_width=True):
+            _ctx = _build_dashboard_context()
+            _sys = "당신은 한국 주식시장 전문 애널리스트입니다. 핵심만 3-4줄로 간결하게 답하세요."
+            _prompt = f"아래 대시보드 현황을 3-4줄로 요약해주세요:\n{_ctx}"
+            st.session_state.sb_llm_history.append({"role": "user", "content": "📊 현재 시장 요약 요청"})
+            with st.spinner("분석 중..."):
+                _reply = _call_ollama(
+                    [{"role": "system", "content": _sys}, {"role": "user", "content": _prompt}]
+                )
+            st.session_state.sb_llm_history.append({"role": "assistant", "content": _reply})
+            st.rerun()
+    with _qa_col2:
+        if st.button("🧹 초기화", key="llm_clr", use_container_width=True):
+            st.session_state.sb_llm_history = []
+            st.rerun()
+
+    # 직접 입력
+    _user_q = st.text_input(
+        "질문 입력",
+        placeholder="예: 반도체 섹터 매수 타이밍은?",
+        key="sb_llm_input",
+        label_visibility="collapsed",
+    )
+    if st.button("전송 ▶", key="llm_send", use_container_width=True) and _user_q.strip():
+        _ctx = _build_dashboard_context()
+        _sys = (
+            "당신은 한국 주식시장 전문 애널리스트입니다. "
+            "아래 대시보드 데이터를 참고하여 핵심만 답하세요.\n\n"
+            f"[현재 대시보드 데이터]\n{_ctx}"
+        )
+        _msgs = [{"role": "system", "content": _sys}]
+        # 최근 4턴 히스토리 포함
+        for _h in st.session_state.sb_llm_history[-4:]:
+            _msgs.append({"role": _h["role"], "content": _h["content"]})
+        _msgs.append({"role": "user", "content": _user_q.strip()})
+        st.session_state.sb_llm_history.append({"role": "user", "content": _user_q.strip()})
+        with st.spinner("생각 중..."):
+            _reply = _call_ollama(_msgs)
+        st.session_state.sb_llm_history.append({"role": "assistant", "content": _reply})
+        st.rerun()
 
 
 # ─── 헤더 ────────────────────────────────────────────────────────────────────
@@ -3042,10 +3152,21 @@ with _tab_market:
     st.markdown('<a id="top10"></a>', unsafe_allow_html=True)
     st.header("📊 섹터별 시총 Top 10 — 순위 변동")
 
+    _cp_col, _ = st.columns([2, 5])
+    with _cp_col:
+        compare_period = st.radio(
+            "순위 비교 기간",
+            ["1d", "7d", "15d", "30d"],
+            index=0,
+            horizontal=True,
+            key="compare_period_widget",
+            help="시총 Top10 테이블의 순위변동 비교 기준 기간",
+        )
+
     period_col = PERIOD_TO_COL.get(compare_period, "1일전")
     st.caption(
         f"🆕 신규편입(파랑) | 🔺 상승(초록) | 🔻 하락(빨강) | ➖ 유지  /  "
-        f"⭐ = 6개월 주목 섹터  /  비교 기준: **{compare_period}** (사이드바에서 변경)"
+        f"⭐ = 6개월 주목 섹터  /  비교 기준: **{compare_period}**"
     )
 
     if rankings_data:
@@ -3154,10 +3275,20 @@ with _tab_market:
     st.markdown('<a id="ratios"></a>', unsafe_allow_html=True)
     st.header("💹 재무비율 분석")
 
+    # 재무비율 섹터 필터 (인라인)
+    _fin_fc, _fin_blank = st.columns([3, 4])
+    with _fin_fc:
+        selected_opt = st.selectbox(
+            "섹터 필터",
+            sector_options,
+            key="fin_sector_filter",
+            help="재무비율 분석에 표시할 섹터를 선택하세요",
+        )
+
     sample_period = next((v.get("period") for v in ratios_data.values() if v.get("period")), None)
     st.caption(
         f"📁 DART 기준: {decode_period(sample_period)}  |  "
-        f"🟢초록=섹터 대비 좋음  🔴빨강=나쁨  |  섹터 필터: 사이드바에서 변경"
+        f"🟢초록=섹터 대비 좋음  🔴빨강=나쁨"
     )
 
     if rankings_data and ratios_data:
