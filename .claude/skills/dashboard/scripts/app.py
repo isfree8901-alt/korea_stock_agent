@@ -77,7 +77,11 @@ def _check_password() -> bool:
         return False
 
     # ── 단일 비밀번호 모드 (레거시) ───────────────────────────────────────────
-    required_pwd = _sec.get("password", "")
+    try:
+        required_pwd = _sec.get("password", "")
+    except Exception:
+        st.session_state.setdefault("_username", "local")
+        return True
     if not required_pwd:
         st.session_state.setdefault("_username", "local")
         return True  # secrets 있지만 password 키 없음 → 로컬로 간주
@@ -631,11 +635,18 @@ hr { border-color: #e5e5ea !important; margin: 1.5rem 0 !important; }
     font-weight: 600 !important;
     font-size: 0.88rem !important;
     transition: all 0.2s !important;
+    -webkit-text-fill-color: #ffffff !important;
 }
 .stButton > button:hover {
-    background: #0077ed !important;
+    background: #005bb5 !important;
     box-shadow: 0 4px 12px rgba(0,113,227,0.35) !important;
     transform: translateY(-1px) !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+.stButton > button p, .stButton > button span {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
 }
 
 /* ── 인풋 ── */
@@ -779,8 +790,8 @@ STEP_FILES = [
 
 # ─── LLM 헬퍼 ────────────────────────────────────────────────────────────────
 
-def _call_ollama(messages: list[dict], model: str | None = None, timeout: int = 90) -> str:
-    """Ollama /api/chat 동기 호출. 실패 시 오류 메시지 반환."""
+def _call_ollama(messages: list[dict], model: str | None = None, timeout: int = 120) -> str:
+    """Ollama /api/chat 동기 호출. 실패 시 오류 메시지 반환. images 포함 시 멀티모달."""
     import requests as _req
 
     _host = os.getenv("OLLAMA_HOST", "http://localhost:11434")
@@ -796,9 +807,15 @@ def _call_ollama(messages: list[dict], model: str | None = None, timeout: int = 
     except _req.exceptions.ConnectionError:
         return "⚠️ Ollama 서버에 연결할 수 없습니다. `ollama serve` 를 먼저 실행해 주세요."
     except _req.exceptions.Timeout:
-        return "⚠️ 응답 시간 초과 (90초). 모델 로딩 중이거나 쿼리가 너무 깁니다."
+        return "⚠️ 응답 시간 초과 (120초). 모델 로딩 중이거나 쿼리가 너무 깁니다."
     except Exception as e:
         return f"⚠️ LLM 오류: {e}"
+
+
+def _image_to_base64(file_bytes: bytes) -> str:
+    """이미지 바이트를 base64 문자열로 변환."""
+    import base64
+    return base64.b64encode(file_bytes).decode("utf-8")
 
 
 def _build_dashboard_context() -> str:
@@ -826,6 +843,93 @@ def _build_dashboard_context() -> str:
     if ratios_data:
         lines.append(f"재무비율 수집 종목: {len(ratios_data)}개")
     return "\n".join(lines)
+
+
+def _build_dashboard_chart_image() -> bytes | None:
+    """현재 로드된 데이터로 대시보드 요약 차트를 PNG bytes로 반환. kaleido 필요."""
+    try:
+        import plotly.io as pio
+        from plotly.subplots import make_subplots
+        import plotly.graph_objects as go
+
+        rows, row_heights = 0, []
+        has_market = bool(market_data_raw)
+        has_sector = bool(rankings_data) and bool(sector_scores)
+        has_ratios = bool(ratios_data)
+        if has_market:
+            rows += 1; row_heights.append(0.35)
+        if has_sector:
+            rows += 1; row_heights.append(0.35)
+        if has_ratios:
+            rows += 1; row_heights.append(0.30)
+        if rows == 0:
+            return None
+
+        fig = make_subplots(
+            rows=rows, cols=1,
+            row_heights=row_heights,
+            subplot_titles=[
+                t for t, cond in [
+                    ("주요 시장 지수 등락률 (%)", has_market),
+                    ("섹터별 종합 점수 Top10", has_sector),
+                    ("주요 종목 ROE (%)", has_ratios),
+                ] if cond
+            ],
+            vertical_spacing=0.12,
+        )
+
+        _row = 1
+        # ① 주요 지수 등락률
+        if has_market:
+            _indices = ["KOSPI", "KOSDAQ", "KRX100"]
+            _vals = [market_data_raw.get(k, {}).get("change_rate", 0) for k in _indices]
+            _colors = ["#34c759" if v >= 0 else "#ff3b30" for v in _vals]
+            fig.add_trace(go.Bar(x=_indices, y=_vals, marker_color=_colors, name="등락률"), row=_row, col=1)
+            _row += 1
+
+        # ② 섹터 점수 Top10
+        if has_sector:
+            _secs = sorted(
+                rankings_data.keys(),
+                key=lambda s: sector_composite_score(s, sector_scores, themes_data),
+                reverse=True,
+            )[:10]
+            _sec_scores = [sector_composite_score(s, sector_scores, themes_data) for s in _secs]
+            _sec_names = [krx_display_name(s) for s in _secs]
+            _hl = {k for k, v in (themes_data or {}).items() if v.get("highlight")}
+            _sec_colors = ["#f5a623" if s in _hl else "#0071e3" for s in _secs]
+            fig.add_trace(
+                go.Bar(x=_sec_names, y=_sec_scores, marker_color=_sec_colors, name="섹터점수"),
+                row=_row, col=1,
+            )
+            _row += 1
+
+        # ③ 주요 종목 ROE
+        if has_ratios:
+            _items = [(k, v.get("ROE", 0) or 0) for k, v in ratios_data.items() if v.get("ROE") is not None]
+            _items.sort(key=lambda x: x[1], reverse=True)
+            _items = _items[:15]
+            _roe_names = [ratios_data[k].get("name", k) for k, _ in _items]
+            _roe_vals = [v for _, v in _items]
+            fig.add_trace(
+                go.Bar(x=_roe_names, y=_roe_vals, marker_color="#5ac8fa", name="ROE"),
+                row=_row, col=1,
+            )
+
+        fig.update_layout(
+            height=260 * rows,
+            paper_bgcolor="#1a1a2e",
+            plot_bgcolor="#1a1a2e",
+            font=dict(color="#e0e0f0", size=10),
+            showlegend=False,
+            margin=dict(l=40, r=20, t=50, b=40),
+        )
+        fig.update_xaxes(tickfont=dict(size=9), gridcolor="#2a2a3e")
+        fig.update_yaxes(gridcolor="#2a2a3e")
+
+        return pio.to_image(fig, format="png", width=800, height=260 * rows)
+    except Exception:
+        return None
 
 
 # ─── 사이드바 ─────────────────────────────────────────────────────────────────
@@ -890,57 +994,124 @@ with st.sidebar:
     st.markdown(f"**🤖 AI 분석 어시스턴트**")
     st.caption(f"모델: `{_llm_model_name}`")
 
+    # 로컬 LLM 경고 문구
+    st.warning(
+        "⚠️ **로컬 LLM 전용** — 이 기능은 로컬 환경(Ollama)에서만 작동합니다. "
+        "Streamlit Cloud 등 원격 배포 환경에서는 사용할 수 없습니다.",
+        icon=None,
+    )
+
     # 세션 상태 초기화
     if "sb_llm_history" not in st.session_state:
-        st.session_state.sb_llm_history = []  # [{"role":"user"|"assistant", "content":"..."}]
+        st.session_state.sb_llm_history = []  # [{"role":"user"|"assistant", "content":"...", "has_image": bool}]
 
-    # 채팅 이력 표시 (최근 6개)
+    # ── 채팅 이력 표시 (대화창 크게) ──
     _llm_hist = st.session_state.sb_llm_history
+    _chat_html_parts = []
     if _llm_hist:
-        _chat_html_parts = []
-        for _msg in _llm_hist[-6:]:
+        for _msg in _llm_hist[-10:]:
             _is_user = _msg["role"] == "user"
-            _bg = "#1e3a5f" if _is_user else "#2d2d2d"
+            _bg = "#1a3a5c" if _is_user else "#1e1e2e"
             _align = "right" if _is_user else "left"
             _icon = "👤" if _is_user else "🤖"
-            _text = str(_msg["content"])[:400].replace("<", "&lt;").replace(">", "&gt;")
+            _text = str(_msg["content"])[:600].replace("<", "&lt;").replace(">", "&gt;")
+            _img_badge = ' 📷' if _msg.get("has_image") else ''
             _chat_html_parts.append(
-                f'<div style="text-align:{_align};margin:3px 0">'
-                f'<span style="background:{_bg};color:#f0f0f0;border-radius:8px;'
-                f'padding:5px 9px;font-size:11px;display:inline-block;max-width:95%;'
-                f'word-break:keep-all;line-height:1.4">'
-                f'{_icon} {_text}</span></div>'
+                f'<div style="text-align:{_align};margin:4px 0">'
+                f'<span style="background:{_bg};color:#e8e8f0;border-radius:10px;'
+                f'padding:7px 11px;font-size:11.5px;display:inline-block;max-width:96%;'
+                f'word-break:break-all;line-height:1.5;border:1px solid rgba(255,255,255,0.08)">'
+                f'{_icon}{_img_badge} {_text}</span></div>'
             )
-        st.markdown("\n".join(_chat_html_parts), unsafe_allow_html=True)
-        st.markdown("")
+    _chat_box_content = "\n".join(_chat_html_parts) if _chat_html_parts else (
+        '<div style="color:#888;font-size:11px;text-align:center;padding:20px 0">'
+        '대화 내용이 없습니다.<br>아래에 질문을 입력하세요.</div>'
+    )
+    st.markdown(
+        f'<div style="background:#12121e;border:1px solid #2a2a3e;border-radius:12px;'
+        f'padding:10px 8px;min-height:220px;max-height:380px;overflow-y:auto;'
+        f'margin-bottom:8px">{_chat_box_content}</div>',
+        unsafe_allow_html=True,
+    )
 
-    # 빠른 액션 버튼
-    _qa_col1, _qa_col2 = st.columns(2)
-    with _qa_col1:
-        if st.button("📊 시장 요약", key="llm_mkt", use_container_width=True):
-            _ctx = _build_dashboard_context()
-            _sys = "당신은 한국 주식시장 전문 애널리스트입니다. 핵심만 3-4줄로 간결하게 답하세요."
-            _prompt = f"아래 대시보드 현황을 3-4줄로 요약해주세요:\n{_ctx}"
-            st.session_state.sb_llm_history.append({"role": "user", "content": "📊 현재 시장 요약 요청"})
-            with st.spinner("분석 중..."):
-                _reply = _call_ollama(
-                    [{"role": "system", "content": _sys}, {"role": "user", "content": _prompt}]
-                )
-            st.session_state.sb_llm_history.append({"role": "assistant", "content": _reply})
-            st.rerun()
-    with _qa_col2:
-        if st.button("🧹 초기화", key="llm_clr", use_container_width=True):
-            st.session_state.sb_llm_history = []
-            st.rerun()
+    # ── 이미지 첨부 (멀티모달 RAG) ──
+    _uploaded_img = st.file_uploader(
+        "📷 이미지 첨부 (선택)",
+        type=["png", "jpg", "jpeg", "webp"],
+        key="sb_llm_image",
+        label_visibility="visible",
+        help="차트·스크린샷 등을 첨부하면 모델이 이미지를 함께 분석합니다. (llava·qwen2-vl 등 멀티모달 모델 필요)",
+    )
+    if _uploaded_img is not None:
+        st.image(_uploaded_img, use_column_width=True)
+        st.caption(f"첨부: {_uploaded_img.name}")
 
-    # 직접 입력
-    _user_q = st.text_input(
+    # ── 질문 입력창 ──
+    _user_q = st.text_area(
         "질문 입력",
-        placeholder="예: 반도체 섹터 매수 타이밍은?",
+        placeholder="예: 반도체 섹터 매수 타이밍은? / 첨부 차트를 분석해주세요.",
         key="sb_llm_input",
         label_visibility="collapsed",
+        height=70,
     )
-    if st.button("전송 ▶", key="llm_send", use_container_width=True) and _user_q.strip():
+
+    # ── 버튼 (입력창 아래, 작고 한 줄로) ──
+    # 전역 CSS의 border-radius:980px / padding:8px 20px을 사이드바 컬럼 안에서만 덮어씀
+    st.markdown(
+        """<style>
+        section[data-testid="stSidebar"] div[data-testid="column"] .stButton > button {
+            background: #23233a !important;
+            color: #d0d0f0 !important;
+            -webkit-text-fill-color: #d0d0f0 !important;
+            border: 1px solid #3a3a5e !important;
+            border-radius: 7px !important;
+            padding: 0 8px !important;
+            height: 30px !important;
+            min-height: 0 !important;
+            line-height: 30px !important;
+            font-size: 0.73rem !important;
+            font-weight: 500 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            width: 100% !important;
+            display: block !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+        section[data-testid="stSidebar"] div[data-testid="column"] .stButton > button:hover {
+            background: #2e2e50 !important;
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+        section[data-testid="stSidebar"] div[data-testid="column"] .stButton > button p,
+        section[data-testid="stSidebar"] div[data-testid="column"] .stButton > button span {
+            color: #d0d0f0 !important;
+            -webkit-text-fill-color: #d0d0f0 !important;
+            white-space: nowrap !important;
+            line-height: 30px !important;
+        }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+    _b1, _b2, _b3, _b4 = st.columns([2, 2, 2, 1])
+    with _b1:
+        _do_send = st.button("전송 ▶", key="llm_send", use_container_width=True)
+    with _b2:
+        _do_mkt = st.button("📊 시장요약", key="llm_mkt", use_container_width=True)
+    with _b3:
+        _do_chart = st.button(
+            "📸 차트분석",
+            key="llm_chart",
+            use_container_width=True,
+            help="현재 대시보드 차트를 이미지로 생성하여 LLM이 분석합니다. (멀티모달 모델 필요: llava, qwen2-vl 등)",
+        )
+    with _b4:
+        _do_clr = st.button("🧹", key="llm_clr", use_container_width=True, help="대화 초기화")
+
+    # ── 전송 처리 ──
+    if _do_send and _user_q.strip():
         _ctx = _build_dashboard_context()
         _sys = (
             "당신은 한국 주식시장 전문 애널리스트입니다. "
@@ -948,14 +1119,72 @@ with st.sidebar:
             f"[현재 대시보드 데이터]\n{_ctx}"
         )
         _msgs = [{"role": "system", "content": _sys}]
-        # 최근 4턴 히스토리 포함
         for _h in st.session_state.sb_llm_history[-4:]:
             _msgs.append({"role": _h["role"], "content": _h["content"]})
-        _msgs.append({"role": "user", "content": _user_q.strip()})
-        st.session_state.sb_llm_history.append({"role": "user", "content": _user_q.strip()})
+        # 이미지 첨부 여부
+        if _uploaded_img is not None:
+            _img_b64 = _image_to_base64(_uploaded_img.getvalue())
+            _msgs.append({"role": "user", "content": _user_q.strip(), "images": [_img_b64]})
+            st.session_state.sb_llm_history.append(
+                {"role": "user", "content": _user_q.strip(), "has_image": True}
+            )
+        else:
+            _msgs.append({"role": "user", "content": _user_q.strip()})
+            st.session_state.sb_llm_history.append(
+                {"role": "user", "content": _user_q.strip(), "has_image": False}
+            )
         with st.spinner("생각 중..."):
             _reply = _call_ollama(_msgs)
-        st.session_state.sb_llm_history.append({"role": "assistant", "content": _reply})
+        st.session_state.sb_llm_history.append({"role": "assistant", "content": _reply, "has_image": False})
+        st.rerun()
+
+    # ── 시장 요약 처리 ──
+    if _do_mkt:
+        _ctx = _build_dashboard_context()
+        _sys = "당신은 한국 주식시장 전문 애널리스트입니다. 핵심만 3-4줄로 간결하게 답하세요."
+        _prompt = f"아래 대시보드 현황을 3-4줄로 요약해주세요:\n{_ctx}"
+        st.session_state.sb_llm_history.append(
+            {"role": "user", "content": "📊 현재 시장 요약 요청", "has_image": False}
+        )
+        with st.spinner("분석 중..."):
+            _reply = _call_ollama(
+                [{"role": "system", "content": _sys}, {"role": "user", "content": _prompt}]
+            )
+        st.session_state.sb_llm_history.append({"role": "assistant", "content": _reply, "has_image": False})
+        st.rerun()
+
+    # ── 대시보드 차트 분석 처리 ──
+    if _do_chart:
+        with st.spinner("차트 이미지 생성 중..."):
+            _chart_bytes = _build_dashboard_chart_image()
+        if _chart_bytes is None:
+            st.warning("차트 생성 실패: 데이터 없음 또는 kaleido 미설치")
+        else:
+            _chart_b64 = _image_to_base64(_chart_bytes)
+            _ctx = _build_dashboard_context()
+            _sys = (
+                "당신은 한국 주식시장 전문 애널리스트입니다. "
+                "첨부된 대시보드 차트 이미지와 아래 데이터를 함께 분석하여 핵심 인사이트를 제공하세요.\n\n"
+                f"[텍스트 데이터]\n{_ctx}"
+            )
+            _chart_msg = {
+                "role": "user",
+                "content": "현재 대시보드 차트를 분석하고 투자 인사이트를 알려주세요.",
+                "images": [_chart_b64],
+            }
+            st.session_state.sb_llm_history.append(
+                {"role": "user", "content": "📸 대시보드 차트 분석 요청", "has_image": True}
+            )
+            with st.spinner("차트 분석 중..."):
+                _reply = _call_ollama([{"role": "system", "content": _sys}, _chart_msg])
+            st.session_state.sb_llm_history.append(
+                {"role": "assistant", "content": _reply, "has_image": False}
+            )
+            st.rerun()
+
+    # ── 초기화 처리 ──
+    if _do_clr:
+        st.session_state.sb_llm_history = []
         st.rerun()
 
 
