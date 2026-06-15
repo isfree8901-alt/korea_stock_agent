@@ -1,1 +1,86 @@
-{}
+{
+  "반도체": {
+    "article_count": 16,
+    "positive_signals": 44,
+    "negative_signals": 16,
+    "sentiment_score": 0.467,
+    "sentiment_label": "긍정"
+  },
+  "2차전지": {
+    "article_count": 4,
+    "positive_signals": 0,
+    "negative_signals": 0,
+    "sentiment_score": 0.0,
+    "sentiment_label": "중립"
+  },
+  "바이오": {
+    "article_count": 5,
+    "positive_signals": 1,
+    "negative_signals": 0,
+    "sentiment_score": 1.0,
+    "sentiment_label": "긍정"
+  },
+  "자동차": {
+    "article_count": 12,
+    "positive_signals": 16,
+    "negative_signals": 7,
+    "sentiment_score": 0.391,
+    "sentiment_label": "긍정"
+  },
+  "금융": {
+    "article_count": 69,
+    "positive_signals": 78,
+    "negative_signals": 26,
+    "sentiment_score": 0.5,
+    "sentiment_label": "긍정"
+  },
+  "에너지": {
+    "article_count": 32,
+    "positive_signals": 35,
+    "negative_signals": 14,
+    "sentiment_score": 0.429,
+    "sentiment_label": "긍정"
+  },
+  "통신": {
+    "article_count": 13,
+    "positive_signals": 15,
+    "negative_signals": 5,
+    "sentiment_score": 0.5,
+    "sentiment_label": "긍정"
+  },
+  "철강": {
+    "article_count": 4,
+    "positive_signals": 8,
+    "negative_signals": 4,
+    "sentiment_score": 0.333,
+    "sentiment_label": "긍정"
+  },
+  "화학": {
+    "article_count": 3,
+    "positive_signals": 5,
+    "negative_signals": 6,
+    "sentiment_score": -0.091,
+    "sentiment_label": "중립"
+  },
+  "IT서비스": {
+    "article_count": 43,
+    "positive_signals": 37,
+    "negative_signals": 11,
+    "sentiment_score": 0.542,
+    "sentiment_label": "긍정"
+  },
+  "건설": {
+    "article_count": 33,
+    "positive_signals": 34,
+    "negative_signals": 4,
+    "sentiment_score": 0.789,
+    "sentiment_label": "긍정"
+  },
+  "유통": {
+    "article_count": 13,
+    "positive_signals": 17,
+    "negative_signals": 7,
+    "sentiment_score": 0.417,
+    "sentiment_label": "긍정"
+  }
+}

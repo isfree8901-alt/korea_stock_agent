@@ -1,1 +1,146 @@
-{}
+{
+  "에너지": {
+    "article_count": 32,
+    "sentiment_score": 0.429,
+    "sentiment_label": "긍정",
+    "positive_signals": 35,
+    "negative_signals": 14,
+    "avg_change_rate": 2.7,
+    "advancing_ratio": 100.0,
+    "avg_revenue_growth": 5.7,
+    "profit_improving_ratio": 63.4,
+    "composite_score": 0.775
+  },
+  "바이오": {
+    "article_count": 5,
+    "sentiment_score": 1.0,
+    "sentiment_label": "긍정",
+    "positive_signals": 1,
+    "negative_signals": 0,
+    "avg_change_rate": 1.31,
+    "advancing_ratio": 64.4,
+    "avg_revenue_growth": 23.1,
+    "profit_improving_ratio": 48.2,
+    "composite_score": 0.808
+  },
+  "반도체": {
+    "article_count": 16,
+    "sentiment_score": 0.467,
+    "sentiment_label": "긍정",
+    "positive_signals": 44,
+    "negative_signals": 16,
+    "avg_change_rate": 3.01,
+    "advancing_ratio": 74.6,
+    "avg_revenue_growth": 10.1,
+    "profit_improving_ratio": 46.2,
+    "composite_score": 0.705
+  },
+  "화학": {
+    "article_count": 3,
+    "sentiment_score": -0.091,
+    "sentiment_label": "중립",
+    "positive_signals": 5,
+    "negative_signals": 6,
+    "avg_change_rate": 2.51,
+    "advancing_ratio": 79.2,
+    "avg_revenue_growth": 4.9,
+    "profit_improving_ratio": 44.9,
+    "composite_score": 0.596
+  },
+  "IT서비스": {
+    "article_count": 43,
+    "sentiment_score": 0.542,
+    "sentiment_label": "긍정",
+    "positive_signals": 37,
+    "negative_signals": 11,
+    "avg_change_rate": 1.66,
+    "advancing_ratio": 73.1,
+    "avg_revenue_growth": 30.1,
+    "profit_improving_ratio": 53.8,
+    "composite_score": 0.764
+  },
+  "철강": {
+    "article_count": 4,
+    "sentiment_score": 0.333,
+    "sentiment_label": "긍정",
+    "positive_signals": 8,
+    "negative_signals": 4,
+    "avg_change_rate": 2.92,
+    "advancing_ratio": 87.7,
+    "avg_revenue_growth": 3.9,
+    "profit_improving_ratio": 43.2,
+    "composite_score": 0.708
+  },
+  "금융": {
+    "article_count": 69,
+    "sentiment_score": 0.5,
+    "sentiment_label": "긍정",
+    "positive_signals": 78,
+    "negative_signals": 26,
+    "avg_change_rate": 1.75,
+    "advancing_ratio": 80.8,
+    "avg_revenue_growth": 12.9,
+    "profit_improving_ratio": 67.1,
+    "composite_score": 0.74
+  },
+  "2차전지": {
+    "article_count": 4,
+    "sentiment_score": 0.0,
+    "sentiment_label": "중립",
+    "positive_signals": 0,
+    "negative_signals": 0,
+    "avg_change_rate": null,
+    "advancing_ratio": null,
+    "avg_revenue_growth": null,
+    "profit_improving_ratio": null,
+    "composite_score": 0.5
+  },
+  "자동차": {
+    "article_count": 12,
+    "sentiment_score": 0.391,
+    "sentiment_label": "긍정",
+    "positive_signals": 16,
+    "negative_signals": 7,
+    "avg_change_rate": 3.11,
+    "advancing_ratio": 83.2,
+    "avg_revenue_growth": 151.7,
+    "profit_improving_ratio": 52.2,
+    "composite_score": 0.819
+  },
+  "통신": {
+    "article_count": 13,
+    "sentiment_score": 0.5,
+    "sentiment_label": "긍정",
+    "positive_signals": 15,
+    "negative_signals": 5,
+    "avg_change_rate": 1.77,
+    "advancing_ratio": 85.7,
+    "avg_revenue_growth": 4.5,
+    "profit_improving_ratio": 57.1,
+    "composite_score": 0.736
+  },
+  "건설": {
+    "article_count": 33,
+    "sentiment_score": 0.789,
+    "sentiment_label": "긍정",
+    "positive_signals": 34,
+    "negative_signals": 4,
+    "avg_change_rate": 4.21,
+    "advancing_ratio": 81.5,
+    "avg_revenue_growth": -6.6,
+    "profit_improving_ratio": 57.1,
+    "composite_score": 0.752
+  },
+  "유통": {
+    "article_count": 13,
+    "sentiment_score": 0.417,
+    "sentiment_label": "긍정",
+    "positive_signals": 17,
+    "negative_signals": 7,
+    "avg_change_rate": 2.23,
+    "advancing_ratio": 74.9,
+    "avg_revenue_growth": 10.1,
+    "profit_improving_ratio": 54.5,
+    "composite_score": 0.696
+  }
+}
